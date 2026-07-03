@@ -1,0 +1,988 @@
+<mxfile host="Electron" agent="ageband-modular" pages="11">
+  <diagram name="1 · Integration Architecture" id="t1">
+    <mxGraphModel dx="1709" dy="1045" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n1" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="AgeBand — Integration Architecture (modules, tools &amp;amp; MCP boundaries)" vertex="1">
+          <mxGeometry height="30" width="1300" x="60" y="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n2" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Everything runs inside the host product boundary; the only external surfaces are MCP calls to the host&#39;s own safety controls and config" vertex="1">
+          <mxGeometry height="20" width="1300" x="60" y="52" as="geometry" />
+        </mxCell>
+        <mxCell id="n3" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry height="130" width="360" x="1400" y="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n4" parent="1" style="rounded=1;whiteSpace=wrap;html=1;dashed=1;strokeColor=#6c8ebf;fillColor=#f7fbff;verticalAlign=top;fontSize=12;fontStyle=1;align=left;spacingLeft=10;spacingTop=6;fontColor=#1A4E80;" value="Host AI chat product — on-prem (operator boundary)" vertex="1">
+          <mxGeometry height="960" width="1680" x="60" y="100" as="geometry" />
+        </mxCell>
+        <mxCell id="n5" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;M1 · Gateway &amp;amp; Session&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; receives TurnEvent (async fork,&lt;br&gt;&amp;nbsp; NOT in the reply path)&lt;br&gt;&amp;bull; filters to USER turns only&lt;br&gt;&amp;bull; attaches to session &amp;rarr; AgeBandContext&lt;br&gt;&amp;bull; entry: host hook / middleware / stream&lt;br&gt;&amp;nbsp; (see &#39;Input &amp;amp; Entry&#39; tab)" vertex="1">
+          <mxGeometry height="145" width="240" x="100" y="165" as="geometry" />
+        </mxCell>
+        <mxCell id="n6" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;M1.5 · Cheap Gate&lt;/b&gt;&lt;br&gt;(state check, NOT an LLM call)&lt;br&gt;&lt;br&gt;&amp;bull; reads session state (band, conf, turns)&lt;br&gt;&amp;bull; always-on heuristic TRIPWIRE:&lt;br&gt;&amp;nbsp; contradicting cues on a settled&lt;br&gt;&amp;nbsp; session &amp;rarr; force re-analysis&lt;br&gt;&amp;nbsp; (handles mid-session device handoff)&lt;br&gt;&amp;bull; else settled &amp;rarr; reuse posture" vertex="1">
+          <mxGeometry height="145" width="240" x="100" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="n7" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;M2 · Signal Extraction&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; ONE structured extraction pass&lt;br&gt;&amp;nbsp; (lexical · topic · disclosure · style)&lt;br&gt;&amp;bull; reading-level = deterministic tool&lt;br&gt;&amp;bull; runs only when the gate says so&lt;br&gt;&amp;bull; out: SignalSet" vertex="1">
+          <mxGeometry height="150" width="240" x="100" y="490" as="geometry" />
+        </mxCell>
+        <mxCell id="n8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;M3 · Evidence Fabric&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; session-scoped, ephemeral&lt;br&gt;&amp;bull; corroboration + decay&lt;br&gt;&amp;bull; tools: update / read / decay&lt;br&gt;&amp;bull; NO profile, NO PII" vertex="1">
+          <mxGeometry height="130" width="240" x="100" y="670" as="geometry" />
+        </mxCell>
+        <mxCell id="n9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;M4 · Age-Band Inference&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; estimator (LLM proposes band + cues)&lt;br&gt;&amp;bull; confidence = DETERMINISTIC from&lt;br&gt;&amp;nbsp; evidence + bounded LLM nudge&lt;br&gt;&amp;bull; out: AgeBandEstimate&lt;br&gt;&amp;nbsp; {band, confidence, cited}" vertex="1">
+          <mxGeometry height="150" width="260" x="430" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="n10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;M5 · Policy &amp;amp; Decision&lt;/b&gt;&lt;br&gt;(deterministic)&lt;br&gt;&lt;br&gt;&amp;bull; policy table: band×conf→action&lt;br&gt;&amp;bull; product mode + jurisdiction&lt;br&gt;&amp;bull; step-up threshold&lt;br&gt;&amp;bull; out: Decision" vertex="1">
+          <mxGeometry height="150" width="260" x="780" y="330" as="geometry" />
+        </mxCell>
+        <mxCell id="n11" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;M6 · Enforcement&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; emits safety_posture {level, flags}&lt;br&gt;&amp;bull; HOST honors it (AgeBand does not&lt;br&gt;&amp;nbsp; touch the model / reply path)&lt;br&gt;&amp;bull; proportional · reversible&lt;br&gt;&amp;bull; MCP out: safety-control" vertex="1">
+          <mxGeometry height="140" width="250" x="1120" y="300" as="geometry" />
+        </mxCell>
+        <mxCell id="n12" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;M7 · Step-up &amp;amp; Verification&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; high-severity transition = SYNC&lt;br&gt;&amp;nbsp; (blocks that one reply); else async&lt;br&gt;&amp;bull; step-up prompt / restrict / handoff&lt;br&gt;&amp;bull; explicit CONFIRMED age &amp;rarr; may persist&lt;br&gt;&amp;nbsp; (inferred bands never do)&lt;br&gt;&amp;bull; MCP out: age-confirmation" vertex="1">
+          <mxGeometry height="150" width="250" x="1120" y="470" as="geometry" />
+        </mxCell>
+        <mxCell id="n13" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;M8 · Audit, Telemetry &amp;amp; Fairness&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; minimal ephemeral logs (band+action)&lt;br&gt;&amp;bull; false-positive / bias monitoring&lt;br&gt;&amp;bull; decision + rule-fired trace&lt;br&gt;&amp;bull; NO dossier" vertex="1">
+          <mxGeometry height="110" width="610" x="430" y="540" as="geometry" />
+        </mxCell>
+        <mxCell id="n14" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;M9 · Model Serving (AMD)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; vLLM / TGI on ROCm&lt;br&gt;&amp;bull; OpenAI-compatible endpoint&lt;br&gt;&amp;bull; small model = extraction,&lt;br&gt;&amp;nbsp; larger = estimator · batched" vertex="1">
+          <mxGeometry height="150" width="300" x="430" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="n15" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;M10 · Planner-Supervisor (Agents SDK)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; iterative plan &amp;rarr; act &amp;rarr; observe &amp;rarr; re-plan&lt;br&gt;&amp;bull; chooses the NEXT action (tool or delegate),&lt;br&gt;&amp;nbsp; not a hardcoded pipeline&lt;br&gt;&amp;bull; deterministic guardrails: cannot emit posture,&lt;br&gt;&amp;nbsp; skip/reorder guards, or persist inferred&lt;br&gt;&amp;bull; bounded iterations &amp;rarr; safe default&lt;br&gt;&amp;bull; (see &#39;Planner-Supervisor&#39; tab)" vertex="1">
+          <mxGeometry height="160" width="320" x="780" y="700" as="geometry" />
+        </mxCell>
+        <mxCell id="n16" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Product Config&lt;/b&gt;&lt;br&gt;(MCP)&lt;br&gt;policy table,&lt;br&gt;thresholds, mode" vertex="1">
+          <mxGeometry height="90" width="200" x="1150" y="710" as="geometry" />
+        </mxCell>
+        <mxCell id="n17" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;Host assistant&lt;/b&gt;&lt;br&gt;reply path&lt;br&gt;(content filter,&lt;br&gt;features, tone)" vertex="1">
+          <mxGeometry height="120" width="190" x="1470" y="340" as="geometry" />
+        </mxCell>
+        <mxCell id="e18" edge="1" parent="1" source="n5" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n6" value="turn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e19" edge="1" parent="1" source="n6" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n7" value="analyze">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e20" edge="1" parent="1" source="n6" style="rounded=1;html=1;strokeWidth=1;strokeColor=#6c8ebf;dashed=1;endArrow=block;" target="n11" value="settled → reuse posture">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="360" y="395" />
+              <mxPoint x="1100" y="395" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e21" edge="1" parent="1" source="n7" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" target="n8" value="cues">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e22" edge="1" parent="1" source="n8" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n9" value="evidence">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e23" edge="1" parent="1" source="n9" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n10" value="estimate">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e24" edge="1" parent="1" source="n10" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n11" value="apply">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e25" edge="1" parent="1" source="n10" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" target="n12" value="step-up">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e26" edge="1" parent="1" source="n12" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" target="n10" value="override">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1245" y="640" />
+              <mxPoint x="910" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e27" edge="1" parent="1" source="n11" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" target="n17" value="safety-control">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e28" edge="1" parent="1" source="n12" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" target="n17" value="confirm">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1400" y="545" />
+              <mxPoint x="1400" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e29" edge="1" parent="1" source="n11" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" target="n5" value="next turn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="260" />
+              <mxPoint x="220" y="260" />
+              <mxPoint x="220" y="300" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e30" edge="1" parent="1" source="n14" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" target="n7" value="serve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e31" edge="1" parent="1" source="n14" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" target="n9" value="serve">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e32" edge="1" parent="1" source="n15" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;endArrow=open;" target="n7" value="run">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="700" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e33" edge="1" parent="1" source="n15" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;endArrow=open;" target="n9" value="run">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e34" edge="1" parent="1" source="n16" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" target="n10" value="config">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1250" y="560" />
+              <mxPoint x="910" y="560" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e35" edge="1" parent="1" source="n9" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" target="n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e36" edge="1" parent="1" source="n10" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" target="n13">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="1b · Input &amp;amp; Entry" id="t1b">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1760" pageHeight="1160" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n193" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="AgeBand — Input &amp;amp; Entry (how a turn reaches the multi-agent system)" vertex="1">
+          <mxGeometry x="60" y="20" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n194" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="AgeBand runs ALONGSIDE the reply, not inside it. The user&#39;s turn forks: the assistant answers immediately; AgeBand updates the session&#39;s safety posture in parallel." vertex="1">
+          <mxGeometry x="60" y="52" width="1500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n195" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1360" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n196" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;User&lt;/b&gt;&lt;br&gt;sends a chat message" vertex="1">
+          <mxGeometry x="90" y="150" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n197" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;Host product — message received&lt;/b&gt;&lt;br&gt;(the turn forks two ways)" vertex="1">
+          <mxGeometry x="90" y="300" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n198" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;Assistant reply path&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; answers the user immediately&lt;br&gt;&amp;bull; reads the CURRENT session&lt;br&gt;&amp;nbsp; safety posture (set by AgeBand)&lt;br&gt;&amp;bull; NOT blocked on AgeBand" vertex="1">
+          <mxGeometry x="90" y="460" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n199" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;AgeBand (async, parallel)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; receives the same turn as a&lt;br&gt;&amp;nbsp; TurnEvent&lt;br&gt;&amp;bull; updates safety posture for&lt;br&gt;&amp;nbsp; this + next turn&lt;br&gt;&amp;bull; adds no latency to the reply" vertex="1">
+          <mxGeometry x="90" y="660" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e200" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n196" target="n197">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e201" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n197" target="n198" value="reply (sync)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e202" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;endArrow=block;" edge="1" source="n197" target="n199" value="fork (async)">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e203" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" edge="1" source="n199" target="n198" value="shared safety posture&lt;br&gt;(this/next turn)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="240" y="830" />
+              <mxPoint x="500" y="830" />
+              <mxPoint x="500" y="585" />
+              <mxPoint x="390" y="585" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n204" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#1A1A2E;" value="Three integration modes — pick per how much of the host you control" vertex="1">
+          <mxGeometry x="520" y="120" width="700" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n205" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;Mode 1 · Event hook / callback&lt;/b&gt;&amp;nbsp;&amp;nbsp;&lt;i&gt;(recommended)&lt;/i&gt;&lt;br&gt;&lt;br&gt;&amp;bull; Host emits an event on every user turn (most&lt;br&gt;&amp;nbsp; products already have message-received middleware)&lt;br&gt;&amp;bull; AgeBand subscribes; the event IS the input&lt;br&gt;&amp;bull; Non-invasive: host just notifies, doesn&#39;t route&lt;br&gt;&amp;bull; &lt;b&gt;Needs:&lt;/b&gt; ability to add/subscribe to a hook&lt;br&gt;&amp;bull; &lt;b&gt;Best when:&lt;/b&gt; you control (or can extend) the host" vertex="1">
+          <mxGeometry x="520" y="160" width="600" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n206" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Mode 2 · Middleware / interceptor&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; AgeBand sits pass-through in the message pipeline&lt;br&gt;&amp;bull; Can GATE the reply (hold it) &amp;mdash; but that adds&lt;br&gt;&amp;nbsp; latency, so pass through instantly by default and&lt;br&gt;&amp;nbsp; only hold for a rare high-impact step-up&lt;br&gt;&amp;bull; &lt;b&gt;Needs:&lt;/b&gt; a seat in the request path&lt;br&gt;&amp;bull; &lt;b&gt;Best when:&lt;/b&gt; you need the option to block inline" vertex="1">
+          <mxGeometry x="520" y="340" width="600" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n207" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;Mode 3 · Sidecar reading a stream&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; Host writes turns to a queue / log; AgeBand consumes&lt;br&gt;&amp;bull; Fully decoupled; scales well; most plumbing&lt;br&gt;&amp;bull; &lt;b&gt;Needs:&lt;/b&gt; a turn stream / event bus&lt;br&gt;&amp;bull; &lt;b&gt;Best when:&lt;/b&gt; third-party host you can only sit&lt;br&gt;&amp;nbsp; beside, or very high volume" vertex="1">
+          <mxGeometry x="520" y="520" width="600" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n208" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;TurnEvent&lt;/b&gt; (the input payload)&lt;br&gt;&lt;br&gt;{&lt;br&gt;&amp;nbsp; session_id&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;# a SESSION, not a user identity&lt;br&gt;&amp;nbsp; turn_text&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;# the user&#39;s message (the signal)&lt;br&gt;&amp;nbsp; role&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;&amp;nbsp;# only role=user is analyzed&lt;br&gt;&amp;nbsp; timestamp&lt;br&gt;&amp;nbsp; history_ref&amp;nbsp;&amp;nbsp;# pointer to in-session turns, not the transcript&lt;br&gt;&amp;nbsp; product_context # surface / jurisdiction &amp;rarr; drives policy&lt;br&gt;}" vertex="1">
+          <mxGeometry x="1180" y="160" width="540" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="n209" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;M1 · Gateway &amp;amp; Session&lt;/b&gt; (input handling)&lt;br&gt;&lt;br&gt;&amp;bull; receives TurnEvent from the chosen mode&lt;br&gt;&amp;bull; &lt;b&gt;filters to USER turns&lt;/b&gt; (assistant turns ignored &amp;mdash;&lt;br&gt;&amp;nbsp; analyzing your own output tells you nothing)&lt;br&gt;&amp;bull; attaches turn to the right session:&lt;br&gt;&amp;nbsp; - new &amp;rarr; create AgeBandContext&lt;br&gt;&amp;nbsp; - existing &amp;rarr; resume accumulated evidence (M3)&lt;br&gt;&amp;bull; hands off to the Runner" vertex="1">
+          <mxGeometry x="1180" y="400" width="540" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="n210" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;Runner.run(context=AgeBandContext)&lt;/b&gt;&lt;br&gt;extractor input = {turn_text, session_id, history_ref}" vertex="1">
+          <mxGeometry x="1180" y="640" width="540" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n211" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Key point:&lt;/b&gt; input is ONE turn at a time, but the value is CUMULATIVE across turns. M1&#39;s real job is routing each turn to the correct session&#39;s accumulated evidence &amp;mdash; which is why M3 (Evidence Fabric) is keyed by session_id. Single-turn input + session-scoped state are two halves of one design." vertex="1">
+          <mxGeometry x="520" y="700" width="600" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e212" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n205" target="n208" value="emit">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e213" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n206" target="n208">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e214" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n207" target="n208">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e215" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n208" target="n209">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e216" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n209" target="n210" value="handoff">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e217" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;dashed=1;endArrow=open;" edge="1" source="n199" target="n209" value="TurnEvent">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="420" y="735" />
+              <mxPoint x="1180" y="500" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="2 · M2 Signal Extraction" id="t2">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n37" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M2 — Signal Extraction" vertex="1">
+          <mxGeometry x="60" y="20" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n38" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Preferred: ONE structured extraction pass (below, as an aggregated agent). The four specialist subagents are an OPTIONAL scale-out, used only if a single pass proves too coarse. Cues-only, no PII." vertex="1">
+          <mxGeometry x="60" y="52" width="1480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n39" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1290" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n40" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;Input&lt;/b&gt;&lt;br&gt;{turn_text, session_id,&lt;br&gt;history_ref}" vertex="1">
+          <mxGeometry x="80" y="130" width="210" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n41" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;signal_extractor&lt;/b&gt;&lt;br&gt;(coordinator Agent)&lt;br&gt;&lt;br&gt;&amp;bull; Agent(output_type=SignalSet)&lt;br&gt;&amp;bull; fans out to subagents&lt;br&gt;&amp;nbsp; (parallel where independent)&lt;br&gt;&amp;bull; aggregates + weights cues&lt;br&gt;&amp;bull; drops PII, keeps abstract cues" vertex="1">
+          <mxGeometry x="350" y="110" width="300" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n42" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;LexicalAnalyzer&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; vocabulary richness,&lt;br&gt;&amp;nbsp; sentence complexity,&lt;br&gt;&amp;nbsp; reading level, spelling patterns&lt;br&gt;&amp;bull; tool: reading_level()&lt;br&gt;&amp;nbsp; (textstat, deterministic)&lt;br&gt;&amp;bull; out: LexicalSignals" vertex="1">
+          <mxGeometry x="750" y="90" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n43" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;TopicClassifier&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; age-indicative topics: grade,&lt;br&gt;&amp;nbsp; homework, guardians, curfew,&lt;br&gt;&amp;nbsp; workplace, mortgage, kids...&lt;br&gt;&amp;bull; tool: lexicon_lookup()&lt;br&gt;&amp;bull; out: TopicSignals" vertex="1">
+          <mxGeometry x="750" y="260" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n44" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;SelfDisclosureExtractor&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; explicit statements:&lt;br&gt;&amp;nbsp; &#39;I&#39;m 14&#39;, &#39;in 8th grade&#39;,&lt;br&gt;&amp;nbsp; &#39;my mom won&#39;t let me&#39;&lt;br&gt;&amp;bull; HIGHEST weight when present&lt;br&gt;&amp;bull; out: DisclosureSignals" vertex="1">
+          <mxGeometry x="750" y="430" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n45" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;StyleProfiler&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; interaction style, formality,&lt;br&gt;&amp;nbsp; emoji / slang patterns,&lt;br&gt;&amp;nbsp; turn length&lt;br&gt;&amp;bull; weak signal (context only)&lt;br&gt;&amp;bull; out: StyleSignals" vertex="1">
+          <mxGeometry x="750" y="600" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n46" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;aggregate()&lt;/b&gt;&lt;br&gt;(deterministic merge)&lt;br&gt;&lt;br&gt;&amp;bull; combine 4 signal groups&lt;br&gt;&amp;bull; attach per-cue weight +&lt;br&gt;&amp;nbsp; source subagent&lt;br&gt;&amp;bull; emit SignalSet" vertex="1">
+          <mxGeometry x="1150" y="300" width="250" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n47" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Output → M3&lt;/b&gt;&lt;br&gt;SignalSet {&lt;br&gt;&amp;nbsp; lexical[], topic[],&lt;br&gt;&amp;nbsp; disclosure[], style[],&lt;br&gt;&amp;nbsp; per-cue: {type, value,&lt;br&gt;&amp;nbsp;&amp;nbsp; weight, turn, source} }" vertex="1">
+          <mxGeometry x="1150" y="500" width="250" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n48" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Model Serving (AMD)&lt;/b&gt;&lt;br&gt;small open-weight model&lt;br&gt;serves the LLM subagents&lt;br&gt;(OpenAI-compatible / vLLM ROCm)" vertex="1">
+          <mxGeometry x="350" y="500" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="n49" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Guardrail&lt;/b&gt;: output-type validation on SignalSet · no raw PII persisted · empty set is valid (no cues this turn)" vertex="1">
+          <mxGeometry x="350" y="640" width="300" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e50" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n40" target="n41">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e51" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n41" target="n42">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e52" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n42" target="n46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e53" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n41" target="n43">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e54" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n43" target="n46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e55" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n41" target="n44">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e56" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n44" target="n46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e57" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n41" target="n45">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e58" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n45" target="n46">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e59" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n46" target="n47">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e60" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" source="n48" target="n41" value="serve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n61" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="reading_level()&lt;br&gt;tool" vertex="1">
+          <mxGeometry x="1120" y="90" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n62" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="lexicon_lookup()&lt;br&gt;tool" vertex="1">
+          <mxGeometry x="1120" y="260" width="110" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="e63" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n42" target="n61">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e64" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n43" target="n62">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="3 · M4 Age-Band Inference" id="t3">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1060" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n65" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M4 — Age-Band Inference" vertex="1">
+          <mxGeometry x="60" y="20" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n66" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Estimator agent proposes a band + cited cues; confidence is computed mostly deterministically. Also flags EVASION as a weak signal — inference decides WHEN to step up, it is not the security boundary." vertex="1">
+          <mxGeometry x="60" y="52" width="1480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n67" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1290" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n68" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Input&lt;/b&gt;&lt;br&gt;accumulated evidence&lt;br&gt;(from M3)" vertex="1">
+          <mxGeometry x="80" y="140" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n69" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;ageband_estimator&lt;/b&gt;&lt;br&gt;(coordinator Agent)&lt;br&gt;&lt;br&gt;&amp;bull; Agent(output_type=&lt;br&gt;&amp;nbsp; AgeBandEstimate)&lt;br&gt;&amp;bull; min-evidence gate: below&lt;br&gt;&amp;nbsp; threshold &amp;rarr; band=unknown&lt;br&gt;&amp;bull; orchestrates 3 subagents&lt;br&gt;&amp;bull; assembles final estimate" vertex="1">
+          <mxGeometry x="340" y="120" width="300" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n70" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;EvidenceReasoner&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; reasons over all cues &amp;rarr;&lt;br&gt;&amp;nbsp; candidate band + rationale&lt;br&gt;&amp;bull; weighs disclosure &amp;gt; topic&lt;br&gt;&amp;nbsp; &amp;gt; lexical &amp;gt; style&lt;br&gt;&amp;bull; out: {candidate_band,&lt;br&gt;&amp;nbsp; rationale, signals_cited}" vertex="1">
+          <mxGeometry x="740" y="110" width="330" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n71" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;ConfidenceCalibrator&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; raw reasoning &amp;rarr; calibrated&lt;br&gt;&amp;nbsp; confidence 0..1&lt;br&gt;&amp;bull; factors: evidence volume,&lt;br&gt;&amp;nbsp; corroboration, recency&lt;br&gt;&amp;bull; tool: calibration_table()&lt;br&gt;&amp;bull; out: {confidence}" vertex="1">
+          <mxGeometry x="740" y="280" width="330" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n72" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;ContradictionChecker&lt;/b&gt; (subagent)&lt;br&gt;&lt;br&gt;&amp;bull; flags conflicting cues&lt;br&gt;&amp;nbsp; (adult topics + child vocab)&lt;br&gt;&amp;bull; caps confidence when signals&lt;br&gt;&amp;nbsp; disagree &amp;rarr; prevents overconfidence&lt;br&gt;&amp;bull; out: {contradictions[]}" vertex="1">
+          <mxGeometry x="740" y="450" width="330" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n73" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;assemble()&lt;/b&gt;&lt;br&gt;(deterministic)&lt;br&gt;&lt;br&gt;&amp;bull; combine band + calibrated&lt;br&gt;&amp;nbsp; confidence + contradictions&lt;br&gt;&amp;bull; validate against schema" vertex="1">
+          <mxGeometry x="1150" y="210" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n74" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;Output → M5&lt;/b&gt;&lt;br&gt;AgeBandEstimate {&lt;br&gt;&amp;nbsp; band: child|teen|&lt;br&gt;&amp;nbsp;&amp;nbsp; adult|unknown,&lt;br&gt;&amp;nbsp; confidence: 0..1,&lt;br&gt;&amp;nbsp; signals_cited: [...],&lt;br&gt;&amp;nbsp; contradictions: [...] }" vertex="1">
+          <mxGeometry x="1150" y="400" width="240" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="n75" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="evidence_read()&lt;br&gt;tool" vertex="1">
+          <mxGeometry x="340" y="330" width="130" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n76" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="calibration_table()&lt;br&gt;tool (deterministic)" vertex="1">
+          <mxGeometry x="1110" y="310" width="150" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="n77" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Model Serving (AMD)&lt;/b&gt;&lt;br&gt;larger open-weight model&lt;br&gt;for nuanced reasoning&lt;br&gt;(vLLM ROCm)" vertex="1">
+          <mxGeometry x="340" y="430" width="280" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="e78" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n68" target="n69">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e79" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n69" target="n75">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e80" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n69" target="n70">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e81" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n69" target="n71">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e82" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n69" target="n72">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e83" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n71" target="n76">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e84" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n70" target="n73">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e85" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n71" target="n73">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e86" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#333;endArrow=block;" edge="1" source="n72" target="n73">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e87" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n73" target="n74">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e88" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" source="n77" target="n69" value="serve">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="4 · M3 Evidence Fabric" id="t4">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1500" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n89" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M3 — Evidence Fabric" vertex="1">
+          <mxGeometry x="60" y="20" width="1380" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n90" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Session-scoped, ephemeral accumulation of cues with corroboration and decay. The privacy core: no profile, no PII, purged at session end." vertex="1">
+          <mxGeometry x="60" y="52" width="1380" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n91" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1100" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n92" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#2D2D44;strokeColor=#1A1A2E;fontColor=#FFFFFF;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fontSize=11;" value="&lt;b&gt;Evidence Store&lt;/b&gt;&lt;br&gt;(in-memory, session-scoped, TTL)&lt;br&gt;&lt;br&gt;EvidenceRecord {&lt;br&gt;&amp;nbsp; session_id,&lt;br&gt;&amp;nbsp; cues: [ {type, value_abstracted,&lt;br&gt;&amp;nbsp;&amp;nbsp; weight, turn, source_subagent} ],&lt;br&gt;&amp;nbsp; corroboration_score,&lt;br&gt;&amp;nbsp; last_updated }" vertex="1">
+          <mxGeometry x="120" y="150" width="360" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="n93" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;update_evidence()&lt;/b&gt; tool&lt;br&gt;&lt;br&gt;&amp;bull; append this turn&#39;s cues&lt;br&gt;&amp;bull; recompute corroboration&lt;br&gt;&amp;nbsp; (agree / conflict)&lt;br&gt;&amp;bull; abstracts values (no raw PII)" vertex="1">
+          <mxGeometry x="560" y="130" width="300" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n94" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;read_evidence()&lt;/b&gt; tool&lt;br&gt;&lt;br&gt;&amp;bull; return accumulated cues +&lt;br&gt;&amp;nbsp; corroboration for M4&lt;br&gt;&amp;bull; read-only snapshot" vertex="1">
+          <mxGeometry x="560" y="290" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n95" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;decay()&lt;/b&gt; tool&lt;br&gt;&lt;br&gt;&amp;bull; older cues lose weight&lt;br&gt;&amp;bull; keeps estimate responsive&lt;br&gt;&amp;nbsp; to the current user&lt;br&gt;&amp;bull; runs on a schedule" vertex="1">
+          <mxGeometry x="560" y="420" width="300" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n96" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Ephemerality guarantees&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; session-scoped only &amp;mdash; no cross-session identity&lt;br&gt;&amp;bull; raw cues + INFERRED band are never persisted&lt;br&gt;&amp;bull; only an explicitly CONFIRMED age (from step-up)&lt;br&gt;&amp;nbsp; may persist &amp;mdash; against an EXISTING account only&lt;br&gt;&amp;bull; values abstracted (cue TYPE, not raw quote)&lt;br&gt;&amp;bull; purged on session end / TTL expiry&lt;br&gt;&amp;bull; this is what makes it &#39;signal, not surveillance&#39;" vertex="1">
+          <mxGeometry x="940" y="150" width="420" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="n97" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Corroboration model&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; cues that agree raise the score&lt;br&gt;&amp;bull; cues that conflict lower it &amp;rarr; feeds&lt;br&gt;&amp;nbsp; ContradictionChecker in M4&lt;br&gt;&amp;bull; single ambiguous cue can&#39;t swing the band" vertex="1">
+          <mxGeometry x="940" y="360" width="420" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="e98" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n93" target="n92" value="write">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e99" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n92" target="n94" value="read">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e100" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;dashed=1;" edge="1" source="n95" target="n92" value="age-out">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="n101" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="From M2 (SignalSet)" vertex="1">
+          <mxGeometry x="560" y="100" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n102" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="To M4 (evidence)" vertex="1">
+          <mxGeometry x="560" y="405" width="200" height="20" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="5 · M5 Policy &amp;amp; Decision" id="t5">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1620" pageHeight="980" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n103" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M5 — Policy &amp;amp; Decision (deterministic)" vertex="1">
+          <mxGeometry x="60" y="20" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n104" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="The model estimates; this module decides. A tunable, auditable table maps band × confidence to a graduated action. No LLM here." vertex="1">
+          <mxGeometry x="60" y="52" width="1480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n105" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1230" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n106" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;Input&lt;/b&gt;&lt;br&gt;AgeBandEstimate&lt;br&gt;(from M4)" vertex="1">
+          <mxGeometry x="80" y="150" width="200" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n107" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;policy_gate()&lt;/b&gt;&lt;br&gt;(deterministic engine)&lt;br&gt;&lt;br&gt;&amp;bull; NO LLM &amp;mdash; pure rules&lt;br&gt;&amp;bull; bucket confidence: low /&lt;br&gt;&amp;nbsp; med / high&lt;br&gt;&amp;bull; look up (band, bucket) in&lt;br&gt;&amp;nbsp; the policy table&lt;br&gt;&amp;bull; apply product mode +&lt;br&gt;&amp;nbsp; jurisdiction overrides" vertex="1">
+          <mxGeometry x="340" y="120" width="300" height="180" as="geometry" />
+        </mxCell>
+        <mxCell id="n108" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;Policy Table&lt;/b&gt; (config)&lt;br&gt;&lt;br&gt;(band × conf) &amp;rarr; action set&lt;br&gt;&amp;bull; teen · low &amp;rarr; tighten filters a bit&lt;br&gt;&amp;bull; teen · med &amp;rarr; disable mature&lt;br&gt;&amp;nbsp; features, adjust tone&lt;br&gt;&amp;bull; child · high &amp;rarr; STEP-UP&lt;br&gt;&amp;bull; adult / unknown &amp;rarr; no change" vertex="1">
+          <mxGeometry x="740" y="110" width="340" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n109" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;Product Config&lt;/b&gt; (MCP)&lt;br&gt;&lt;br&gt;&amp;bull; product_mode:&lt;br&gt;&amp;nbsp; adult-protect-minors |&lt;br&gt;&amp;nbsp; kids-detect-adults&lt;br&gt;&amp;bull; jurisdiction thresholds&lt;br&gt;&amp;bull; step-up threshold&lt;br&gt;&amp;bull; feature map" vertex="1">
+          <mxGeometry x="740" y="300" width="340" height="170" as="geometry" />
+        </mxCell>
+        <mxCell id="n110" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;_action_route&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;#9656; apply &amp;rarr; M6 (low/med)&lt;br&gt;&amp;#9656; step_up &amp;rarr; M7&lt;br&gt;&amp;nbsp; (high impact + high conf)&lt;br&gt;&amp;#9656; none &amp;rarr; unknown / adult" vertex="1">
+          <mxGeometry x="1150" y="120" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n111" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;Output&lt;/b&gt;&lt;br&gt;Decision {&lt;br&gt;&amp;nbsp; action: apply|step_up|none,&lt;br&gt;&amp;nbsp; safety_settings,&lt;br&gt;&amp;nbsp; reason, rule_fired,&lt;br&gt;&amp;nbsp; estimate_ref }" vertex="1">
+          <mxGeometry x="1150" y="320" width="300" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n112" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;&amp;rarr; M8 Audit&lt;/b&gt;: every decision logged with estimate + rule_fired (minimal, ephemeral)" vertex="1">
+          <mxGeometry x="740" y="500" width="340" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e113" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n106" target="n107">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e114" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n107" target="n108" value="lookup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e115" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n107" target="n109" value="config">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e116" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n107" target="n110">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e117" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n110" target="n111">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e118" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n107" target="n112">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="6 · M6/M7 Enforcement &amp;amp; Step-up" id="t6">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1020" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n119" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M6 / M7 — Enforcement &amp;amp; Step-up" vertex="1">
+          <mxGeometry x="60" y="20" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n120" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Applies proportional safety to the host assistant via MCP, or (only at high impact + high confidence) asks the user to confirm — never a silent hard-block on a guess." vertex="1">
+          <mxGeometry x="60" y="52" width="1480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n121" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1290" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n122" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;Input&lt;/b&gt;&lt;br&gt;Decision (from M5)" vertex="1">
+          <mxGeometry x="80" y="150" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n123" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;safety_applier&lt;/b&gt; (M6)&lt;br&gt;&lt;br&gt;&amp;bull; sets, for THIS session:&lt;br&gt;&amp;nbsp; - content filter level&lt;br&gt;&amp;nbsp; - feature availability&lt;br&gt;&amp;nbsp; - tone / guardrail profile&lt;br&gt;&amp;bull; proportional · reversible&lt;br&gt;&amp;bull; MCP out: safety-control" vertex="1">
+          <mxGeometry x="350" y="110" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n124" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;step_up_agent&lt;/b&gt; (M7)&lt;br&gt;&lt;br&gt;&amp;bull; composes: confirm-age prompt |&lt;br&gt;&amp;nbsp; feature restriction | handoff&lt;br&gt;&amp;bull; only high-impact + high-conf&lt;br&gt;&amp;bull; MCP out: age-confirmation&lt;br&gt;&amp;bull; out: StepUpAction" vertex="1">
+          <mxGeometry x="350" y="300" width="320" height="160" as="geometry" />
+        </mxCell>
+        <mxCell id="n125" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;confirmation_handler&lt;/b&gt; (M7)&lt;br&gt;&lt;br&gt;&amp;bull; receives explicit age&lt;br&gt;&amp;bull; OVERRIDES inference&lt;br&gt;&amp;bull; settles session band&lt;br&gt;&amp;bull; triggers one policy re-eval" vertex="1">
+          <mxGeometry x="350" y="500" width="320" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n126" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="MCP: content_filter.set(level)" vertex="1">
+          <mxGeometry x="760" y="110" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n127" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="MCP: feature_gate.set(features)" vertex="1">
+          <mxGeometry x="760" y="160" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n128" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="MCP: assistant_guardrail.set(profile)" vertex="1">
+          <mxGeometry x="760" y="210" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n129" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="MCP: age_confirmation.request()" vertex="1">
+          <mxGeometry x="760" y="340" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n130" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="MCP: feature_gate.restrict()" vertex="1">
+          <mxGeometry x="760" y="390" width="300" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n131" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;Host assistant&lt;/b&gt;&lt;br&gt;(reply path)&lt;br&gt;&lt;br&gt;content filter · features ·&lt;br&gt;tone applied here" vertex="1">
+          <mxGeometry x="1150" y="180" width="240" height="150" as="geometry" />
+        </mxCell>
+        <mxCell id="n132" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;User&lt;/b&gt;&lt;br&gt;(receives confirm&lt;br&gt;prompt if step-up)" vertex="1">
+          <mxGeometry x="1150" y="400" width="240" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n133" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Guardrails&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; never a silent hard-block on a guess&lt;br&gt;&amp;bull; step-up only crosses the high-impact + high-confidence threshold&lt;br&gt;&amp;bull; explicit confirmation always wins over inference&lt;br&gt;&amp;bull; all settings session-scoped &amp;amp; reversible" vertex="1">
+          <mxGeometry x="760" y="500" width="630" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e134" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n122" target="n123" value="apply">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e135" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n122" target="n124" value="step-up">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="300" y="380" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e136" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n123" target="n126">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e137" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n123" target="n127">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e138" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n123" target="n128">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e139" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n124" target="n129">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e140" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=block;" edge="1" source="n124" target="n130">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e141" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n124" target="n125" value="await">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e142" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;endArrow=block;" edge="1" source="n126" target="n131">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e143" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;endArrow=block;" edge="1" source="n127" target="n131">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e144" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;endArrow=block;" edge="1" source="n128" target="n131">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e145" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#9673a6;endArrow=block;" edge="1" source="n129" target="n132">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e146" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" edge="1" source="n125" target="n122" value="override → re-eval">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="180" y="575" />
+              <mxPoint x="180" y="190" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="7 · M9/M10 Serving &amp;amp; Orchestration (AMD)" id="t7">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1680" pageHeight="1000" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n147" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="Module M9 / M10 — Model Serving &amp;amp; Orchestration (AMD)" vertex="1">
+          <mxGeometry x="60" y="20" width="1480" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n148" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="The OpenAI Agents SDK Runner coordinates all agents against open-weight models served locally on AMD ROCm. Nothing leaves the boundary." vertex="1">
+          <mxGeometry x="60" y="52" width="1480" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n149" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1290" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n150" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;Orchestrator — Planner-Supervisor (Agents SDK)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; iterative plan &amp;rarr; act &amp;rarr; observe &amp;rarr; re-plan&lt;br&gt;&amp;nbsp; (chooses the next action; see Planner tab)&lt;br&gt;&amp;bull; registry: signal_extractor, ageband_estimator,&lt;br&gt;&amp;nbsp; stepup_composer + deterministic tools&lt;br&gt;&amp;bull; typed output_type (Pydantic) on every action&lt;br&gt;&amp;bull; deterministic guardrails + precondition checks&lt;br&gt;&amp;bull; local tracing (no external telemetry)" vertex="1">
+          <mxGeometry x="90" y="130" width="560" height="220" as="geometry" />
+        </mxCell>
+        <mxCell id="n151" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Model Serving (AMD ROCm)&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; vLLM / TGI serving open-weight models&lt;br&gt;&amp;nbsp; (Llama- / Qwen-class)&lt;br&gt;&amp;bull; OpenAI-compatible endpoint &amp;rarr; Agents SDK&lt;br&gt;&amp;nbsp; base_url override (no OpenAI cloud)&lt;br&gt;&amp;bull; model routing:&lt;br&gt;&amp;nbsp; - small model &amp;rarr; extraction subagents&lt;br&gt;&amp;nbsp; - larger model &amp;rarr; estimator reasoning&lt;br&gt;&amp;bull; continuous batching for always-on throughput" vertex="1">
+          <mxGeometry x="720" y="130" width="560" height="240" as="geometry" />
+        </mxCell>
+        <mxCell id="n152" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;MCP Server Registry&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; MCPServerStreamableHttp / Stdio&lt;br&gt;&amp;bull; host-events (inbound turns)&lt;br&gt;&amp;bull; product-config (policy, thresholds, mode)&lt;br&gt;&amp;bull; safety-control (content filter, features, tone)&lt;br&gt;&amp;bull; age-confirmation (step-up)&lt;br&gt;&amp;bull; passed to agents via mcp_servers=[...]" vertex="1">
+          <mxGeometry x="90" y="420" width="560" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="n153" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Guardrails &amp;amp; Isolation&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; input guardrail: strip / never log raw PII&lt;br&gt;&amp;bull; output guardrail: validate AgeBandEstimate,&lt;br&gt;&amp;nbsp; enforce &#39;bands not ages&#39;, allow &#39;unknown&#39;&lt;br&gt;&amp;bull; everything inside the product boundary&lt;br&gt;&amp;bull; no external API calls, no cloud egress&lt;br&gt;&amp;bull; this is the entire deployability argument" vertex="1">
+          <mxGeometry x="720" y="420" width="560" height="210" as="geometry" />
+        </mxCell>
+        <mxCell id="e154" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" source="n150" target="n151" value="inference via OpenAI-compatible endpoint">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e155" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#9673a6;dashed=1;endArrow=open;" edge="1" source="n150" target="n152" value="tools">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e156" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n151" target="n153">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="8 · Agent / Subagent Tree (proposal)" id="t8">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1760" pageHeight="1240" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n157" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="AgeBand — Agent / Subagent Lowest-Level View (proposal)" vertex="1">
+          <mxGeometry x="60" y="20" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n158" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Green = LLM agent · light green = LLM subagent · grey = deterministic tool · yellow = function tool · purple = MCP · red = model binding. Typed Pydantic contract on every edge." vertex="1">
+          <mxGeometry x="60" y="52" width="1500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n159" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1360" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n160" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;planner_supervisor&lt;/b&gt; (Runner — iterative plan/act/observe)&lt;br&gt;picks the next action each step · guardrailed · context = AgeBandContext" vertex="1">
+          <mxGeometry x="640" y="100" width="480" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n161" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;signal_extractor&lt;/b&gt;&lt;br&gt;(coordinator agent)&lt;br&gt;&amp;rarr; SignalSet" vertex="1">
+          <mxGeometry x="120" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n162" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;LexicalAnalyzer&lt;/b&gt;&lt;br&gt;&amp;rarr; LexicalSignals" vertex="1">
+          <mxGeometry x="60" y="360" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n163" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;TopicClassifier&lt;/b&gt;&lt;br&gt;&amp;rarr; TopicSignals" vertex="1">
+          <mxGeometry x="245" y="360" width="170" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n164" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;SelfDisclosure&lt;br&gt;Extractor&lt;/b&gt;&lt;br&gt;&amp;rarr; DisclosureSignals" vertex="1">
+          <mxGeometry x="60" y="470" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n165" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;StyleProfiler&lt;/b&gt;&lt;br&gt;&amp;rarr; StyleSignals" vertex="1">
+          <mxGeometry x="245" y="470" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n166" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="reading_level()" vertex="1">
+          <mxGeometry x="60" y="590" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n167" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="lexicon_lookup()" vertex="1">
+          <mxGeometry x="245" y="590" width="150" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n168" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;ageband_estimator&lt;/b&gt;&lt;br&gt;(coordinator agent)&lt;br&gt;&amp;rarr; AgeBandEstimate" vertex="1">
+          <mxGeometry x="700" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n169" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;EvidenceReasoner&lt;/b&gt;&lt;br&gt;&amp;rarr; candidate_band&lt;br&gt;+ rationale" vertex="1">
+          <mxGeometry x="620" y="360" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n170" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;ConfidenceCalibrator&lt;/b&gt;&lt;br&gt;&amp;rarr; confidence" vertex="1">
+          <mxGeometry x="815" y="360" width="180" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n171" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e9f5e4;strokeColor=#82b366;" value="&lt;b&gt;ContradictionChecker&lt;/b&gt;&lt;br&gt;&amp;rarr; contradictions[]" vertex="1">
+          <mxGeometry x="715" y="480" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n172" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=center;verticalAlign=middle;fontStyle=1;fillColor=#fff2cc;strokeColor=#d6b656;" value="calibration_table()" vertex="1">
+          <mxGeometry x="815" y="480" width="160" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="n173" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;step_up_agent&lt;/b&gt;&lt;br&gt;(agent)&lt;br&gt;&amp;rarr; StepUpAction" vertex="1">
+          <mxGeometry x="1280" y="220" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n174" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Deterministic tools (non-agent)&lt;/b&gt;:&amp;nbsp; update_evidence() · read_evidence() · decay() · aggregate() · assemble() · policy_gate() · _action_route()" vertex="1">
+          <mxGeometry x="120" y="700" width="1420" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n175" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;MCP (external to host product)&lt;/b&gt;:&amp;nbsp; host-events (in) · product-config · safety-control (content_filter / feature_gate / guardrail) · age-confirmation" vertex="1">
+          <mxGeometry x="120" y="790" width="1420" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n176" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Model binding (AMD ROCm, vLLM)&lt;/b&gt;:&amp;nbsp; small model &amp;rarr; extraction subagents&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp; larger model &amp;rarr; estimator subagents&amp;nbsp;&amp;nbsp;|&amp;nbsp;&amp;nbsp; OpenAI-compatible endpoint" vertex="1">
+          <mxGeometry x="120" y="880" width="1420" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n177" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Typed contracts (Pydantic output_type)&lt;/b&gt;&lt;br&gt;SignalSet · LexicalSignals · TopicSignals · DisclosureSignals · StyleSignals · EvidenceRecord · AgeBandEstimate · Decision · StepUpAction" vertex="1">
+          <mxGeometry x="120" y="980" width="1420" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="e178" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n160" target="n161">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e179" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n160" target="n168">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e180" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n160" target="n173">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e181" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n161" target="n162">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e182" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n161" target="n163">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e183" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n161" target="n164">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e184" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n161" target="n165">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e185" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n162" target="n166">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e186" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n163" target="n167">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e187" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n168" target="n169">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e188" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n168" target="n170">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e189" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n168" target="n171">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e190" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n170" target="n172">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e191" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;dashed=1;endArrow=block;" edge="1" source="n161" target="n168" value="via M3 evidence">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="490" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e192" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;dashed=1;endArrow=block;" edge="1" source="n168" target="n173" value="via M5 (if step-up)">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1120" y="265" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="10 · Planner-Supervisor" id="t10">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1760" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n241" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="AgeBand — Runtime Planner-Supervisor (agentic orchestration, deterministically guardrailed)" vertex="1">
+          <mxGeometry x="60" y="20" width="1400" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n242" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Orchestration is NOT a hardcoded pipeline: a planner agent iteratively decides the next action. But it can only REQUEST safety actions — deterministic guards decide the outcome and fail closed." vertex="1">
+          <mxGeometry x="60" y="52" width="1500" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n243" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1360" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n244" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Session state&lt;/b&gt;&lt;br&gt;(band, confidence, settled?,&lt;br&gt;turn count, evidence summary)" vertex="1">
+          <mxGeometry x="100" y="150" width="260" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n245" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#e1d5e7;strokeColor=#9673a6;" value="&lt;b&gt;1 · PLAN&lt;/b&gt; (planner_supervisor, LLM)&lt;br&gt;&lt;br&gt;&amp;bull; given state + goal (&#39;produce/refresh a&lt;br&gt;&amp;nbsp; safe safety_posture for this turn&#39;)&lt;br&gt;&amp;bull; choose the NEXT single action&lt;br&gt;&amp;bull; emits a TYPED action request (Pydantic)" vertex="1">
+          <mxGeometry x="100" y="290" width="400" height="140" as="geometry" />
+        </mxCell>
+        <mxCell id="n246" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;2 · ACT&lt;/b&gt; (orchestration executes)&lt;br&gt;&lt;br&gt;&amp;bull; run exactly one action:&lt;br&gt;&amp;nbsp; a deterministic tool OR a delegate subagent&lt;br&gt;&amp;bull; ONLY after precondition check (below)" vertex="1">
+          <mxGeometry x="100" y="470" width="400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n247" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;3 · OBSERVE&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; read the typed result&lt;br&gt;&amp;bull; update session state" vertex="1">
+          <mxGeometry x="100" y="640" width="400" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n248" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;4 · RE-PLAN or FINISH&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; posture emitted or step-up raised &amp;rarr; DONE&lt;br&gt;&amp;bull; else loop (bounded: &amp;le; N iterations)&lt;br&gt;&amp;bull; cap hit &amp;rarr; safe default posture (fail closed)" vertex="1">
+          <mxGeometry x="100" y="790" width="400" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e249" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n244" target="n245">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e250" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n245" target="n246" value="typed action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e251" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n246" target="n247" value="result">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e252" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n247" target="n248">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e253" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" edge="1" source="n248" target="n245" value="re-plan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="560" y="855" />
+              <mxPoint x="560" y="360" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n254" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#1A1A2E;" value="Actions the planner may request" vertex="1">
+          <mxGeometry x="640" y="150" width="500" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n255" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Deterministic tools&lt;/b&gt; (Python, no LLM)&lt;br&gt;&lt;br&gt;gate_check · read_evidence · compute_confidence ·&lt;br&gt;policy_decide · emit_posture · persist_confirmed" vertex="1">
+          <mxGeometry x="640" y="185" width="480" height="110" as="geometry" />
+        </mxCell>
+        <mxCell id="n256" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;Delegate subagents&lt;/b&gt; (YAML, LLM)&lt;br&gt;&lt;br&gt;signal_extractor &amp;rarr; SignalSet&lt;br&gt;ageband_estimator &amp;rarr; band + cues + evasion flag&lt;br&gt;stepup_composer &amp;rarr; step-up message" vertex="1">
+          <mxGeometry x="640" y="310" width="480" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n257" parent="1" style="text;html=1;align=left;verticalAlign=middle;fontSize=13;fontStyle=1;fontColor=#b85450;" value="&lt;b&gt;Deterministic guardrails — the planner chooses the ROUTE, not the safety OUTCOME&lt;/b&gt;" vertex="1">
+          <mxGeometry x="640" y="470" width="900" height="24" as="geometry" />
+        </mxCell>
+        <mxCell id="n258" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Cannot emit safety_posture itself&lt;/b&gt; — only the deterministic policy_decide / emit_posture tools produce one. Planner may only REQUEST a decision." vertex="1">
+          <mxGeometry x="640" y="505" width="900" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="n259" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Cannot skip / reorder safety guards&lt;/b&gt; — a posture may only follow a valid estimate + deterministic compute_confidence + policy_decide. Orchestration validates preconditions and REJECTS out-of-order actions (fail closed)." vertex="1">
+          <mxGeometry x="640" y="575" width="900" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n260" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Confidence is always deterministic&lt;/b&gt; — never taken from the LLM. &lt;b&gt;Persistence&lt;/b&gt;: only persist_confirmed (explicit user-confirmed age) persists; inferred bands never do — planner cannot persist an inferred band." vertex="1">
+          <mxGeometry x="640" y="655" width="900" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n261" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Sync/async is enforced deterministically&lt;/b&gt; — a high-severity transition forces the synchronous step-up path; the planner does not get to choose it. &lt;b&gt;Bounded loop&lt;/b&gt; caps iterations &amp;rarr; safe default posture." vertex="1">
+          <mxGeometry x="640" y="735" width="900" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n262" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;precondition check&lt;/b&gt;&lt;br&gt;(orchestration)&lt;br&gt;valid + in-order?&lt;br&gt;&amp;rarr; run &amp;nbsp;|&amp;nbsp; else REJECT" vertex="1">
+          <mxGeometry x="540" y="300" width="90" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="e263" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n246" target="n262" value="request">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="520" y="430" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e264" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#82b366;endArrow=block;" edge="1" source="n262" target="n255" value="ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e265" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#82b366;endArrow=block;" edge="1" source="n262" target="n256" value="ok">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e266" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#b85450;dashed=1;endArrow=block;" edge="1" source="n262" target="n245" value="reject → re-plan">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="585" y="260" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="n267" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Why this shape:&lt;/b&gt; the open-ended judgment (&#39;is there enough evidence yet? re-extract? settled? escalate?&#39;) is where planning genuinely helps — so it&#39;s an LLM. The safety-critical outcome (confidence, decision, posture, persistence, sync) stays deterministic and fails closed. Agentic where it helps; deterministic where it must be." vertex="1">
+          <mxGeometry x="640" y="825" width="900" height="90" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+  <diagram name="9 · Lean &#39;As-Built&#39; (ship first)" id="t9">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1640" pageHeight="760" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="n218" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=17;fontStyle=1;fontColor=#1A1A2E;" value="AgeBand — Lean &#39;As-Built&#39; view (what actually ships first)" vertex="1">
+          <mxGeometry x="60" y="20" width="1300" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="n219" parent="1" style="text;html=1;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#555;" value="Stripped to essentials: TWO LLM calls (extract, estimate) wrapped in deterministic plumbing. The module map shows the thinking; this is the buildable core." vertex="1">
+          <mxGeometry x="60" y="52" width="1400" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="n220" parent="1" style="fillColor=#f5f5f5;strokeColor=#666666;rounded=1;whiteSpace=wrap;html=1;fontSize=9;align=left;verticalAlign=top;spacingLeft=8;spacingTop=6;" value="&lt;b&gt;Legend&lt;/b&gt;&lt;br&gt;&lt;font color=&#39;#333&#39;&gt;&amp;#9472;&amp;#9472;&lt;/font&gt; sequential / handoff&lt;br&gt;&lt;font color=&#39;#d79b00&#39;&gt;- - -&lt;/font&gt; function tool call&lt;br&gt;&lt;font color=&#39;#9673a6&#39;&gt;- - -&lt;/font&gt; MCP call (external)&lt;br&gt;&lt;font color=&#39;#b85450&#39;&gt;- - -&lt;/font&gt; model serving (AMD)&lt;br&gt;&lt;font color=&#39;#6c8ebf&#39;&gt;- - -&lt;/font&gt; feedback / loop" vertex="1">
+          <mxGeometry x="1240" y="30" width="360" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n221" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#dae8fc;strokeColor=#6c8ebf;" value="&lt;b&gt;TurnEvent&lt;/b&gt;&lt;br&gt;(async fork,&lt;br&gt;user turns only)" vertex="1">
+          <mxGeometry x="80" y="150" width="170" height="90" as="geometry" />
+        </mxCell>
+        <mxCell id="n222" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;gate()&lt;/b&gt;&lt;br&gt;(state check +&lt;br&gt;tripwire, NOT LLM)&lt;br&gt;&lt;br&gt;settled+high-conf?&lt;br&gt;reuse posture.&lt;br&gt;tripwire/thin &amp;rarr; analyze" vertex="1">
+          <mxGeometry x="300" y="140" width="190" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n223" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;extract&lt;/b&gt; (LLM &amp;times;1)&lt;br&gt;&lt;br&gt;one structured pass&lt;br&gt;&amp;rarr; SignalSet&lt;br&gt;(reading-level = tool)" vertex="1">
+          <mxGeometry x="540" y="140" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n224" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;evidence&lt;/b&gt;&lt;br&gt;(deterministic,&lt;br&gt;ephemeral, session)&lt;br&gt;&lt;br&gt;accumulate cues&lt;br&gt;+ corroboration" vertex="1">
+          <mxGeometry x="810" y="140" width="200" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n225" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;estimate&lt;/b&gt; (LLM &amp;times;1)&lt;br&gt;&lt;br&gt;band + cited cues;&lt;br&gt;confidence computed&lt;br&gt;from evidence&lt;br&gt;(bounded nudge)" vertex="1">
+          <mxGeometry x="1060" y="140" width="220" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n226" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;policy()&lt;/b&gt;&lt;br&gt;(deterministic table)&lt;br&gt;&lt;br&gt;band &amp;times; conf &amp;rarr;&lt;br&gt;safety_posture&lt;br&gt;+ step-up threshold" vertex="1">
+          <mxGeometry x="1330" y="140" width="230" height="130" as="geometry" />
+        </mxCell>
+        <mxCell id="n227" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#d5e8d4;strokeColor=#82b366;" value="&lt;b&gt;safety_posture&lt;/b&gt; {level, flags}&lt;br&gt;&amp;rarr; host assistant honors it (host is the enforcer)" vertex="1">
+          <mxGeometry x="540" y="360" width="470" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n228" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=12;align=center;verticalAlign=middle;fontStyle=1;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;step-up&lt;/b&gt; (high-impact + high-conf; SYNC — blocks that one reply)&lt;br&gt;ask to confirm age &amp;rarr; CONFIRMED age overrides &amp;amp; may persist; inferred never does" vertex="1">
+          <mxGeometry x="1060" y="360" width="500" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="n229" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f8cecc;strokeColor=#b85450;" value="&lt;b&gt;Model serving:&lt;/b&gt; ONE open-weight model on AMD ROCm (vLLM, OpenAI-compatible endpoint) serves both LLM calls. Orchestrated by the Agents SDK Runner. (Split into two models only if profiling justifies it.)" vertex="1">
+          <mxGeometry x="300" y="470" width="760" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n230" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Everything grey/orange is deterministic&lt;/b&gt; — gate, evidence, policy, enforcement. Only &#39;extract&#39; and &#39;estimate&#39; are LLM. That&#39;s the whole system." vertex="1">
+          <mxGeometry x="1090" y="470" width="470" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="n231" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=10;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;Grow into the full module map only where load or real-world failure justifies it&lt;/b&gt; (e.g. split extraction subagents if one pass proves too coarse; add fairness loop, audit, multi-model routing)." vertex="1">
+          <mxGeometry x="300" y="590" width="1260" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="e232" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n221" target="n222">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e233" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n222" target="n223" value="analyze">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e234" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n223" target="n224" value="cues">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e235" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n224" target="n225">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e236" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n225" target="n226">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e237" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#6c8ebf;dashed=1;endArrow=block;" edge="1" source="n222" target="n227" value="settled → reuse">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="395" y="320" />
+              <mxPoint x="600" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e238" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n226" target="n227" value="apply">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1445" y="320" />
+              <mxPoint x="700" y="320" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e239" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#333;endArrow=block;" edge="1" source="n226" target="n228" value="step-up">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1445" y="330" />
+              <mxPoint x="1310" y="330" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e240" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#6c8ebf;dashed=1;endArrow=block;" edge="1" source="n227" target="n221" value="next turn">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="510" y="395" />
+              <mxPoint x="165" y="395" />
+              <mxPoint x="165" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

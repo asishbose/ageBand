@@ -1,0 +1,49 @@
+# Node.js leftovers — the project is Python-only; this entry is
+# defensive in case anyone accidentally runs `npm install`.
+node_modules/
+
+# Cursor instruction layer (agents, skills, rules, hooks, feedback log)
+# and the raw prompt history used to build/iterate decks — kept local,
+# not committed.
+.cursor/
+prompts/
+AGENTS.md
+
+# Python bytecode + caches
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+
+# Generated build artifacts — all live in output/, all gitignored.
+# .pptx, .docx, .pdf, .jpg, .png, .xlsx, .html — anything the build/render
+# pipeline produces.
+output/*
+!output/.gitkeep
+!output/README.md
+
+# Cleaned templates — regenerable via `python scripts/prepare-templates.py`
+templates/_clean/
+
+# Common cruft
+.DS_Store
+Thumbs.db
+*.log
+
+# Local environment
+.env
+.env.local
+
+# Editor / IDE local state
+.vscode/
+.idea/
+*.swp
+*.swo
+*~

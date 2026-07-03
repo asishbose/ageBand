@@ -1,0 +1,13 @@
+apiVersion: v2
+name: ageband
+description: AgeBand — passive age-band inference service with graduated safety posture
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+home: https://github.com/your-org/ageband
+maintainers:
+  - name: AgeBand Team
+keywords:
+  - safety
+  - age-inference
+  - moderation

@@ -1,0 +1,38 @@
+[build-system]
+requires = ["setuptools>=70", "wheel"]
+build-backend = "setuptools.backends.legacy:build"
+
+[project]
+name = "ageband"
+version = "0.1.0"
+description = "Passive age-band inference for AI chat products — driving graduated safety"
+requires-python = ">=3.11"
+dependencies = []  # runtime deps in requirements.txt
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+
+[tool.mypy]
+strict = true
+python_version = "3.11"
+exclude = ["src/ui", "tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = ["E", "F", "I", "N", "W", "UP", "B", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "--strict-markers -q"
+
+[tool.coverage.run]
+source = ["src"]
+omit = ["src/ui/*", "*/test_*"]

@@ -1,0 +1,9 @@
+name: ageband_estimator
+description: >
+  Propose an age band for the user based on accumulated evidence.
+  Returns band, cited_cues, evasion_flag, contradictions.
+  NEVER emits a confidence value — confidence is computed in Python.
+system_prompt: file://prompts/ageband_estimator_prompt.md
+output_type: AgeBandEstimate
+input_filter: compress
+output_filter: final_message

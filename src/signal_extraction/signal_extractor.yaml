@@ -1,0 +1,11 @@
+name: signal_extractor
+description: >
+  Extract age-relevant cues from a user turn.
+  Returns a SignalSet with vocab, topic, disclosure, style, reading_level cues.
+system_prompt: file://prompts/signal_extractor_prompt.md
+output_type: SignalSet
+tools:
+  signal_extraction:
+    compute_reading_level_tool: true
+input_filter: compress
+output_filter: final_message

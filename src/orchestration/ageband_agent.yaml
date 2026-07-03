@@ -1,0 +1,27 @@
+# AgeBand — root tinyagent entrypoint
+name: ageband_agent
+version: "1.0.0"
+description: >
+  AgeBand passive age-band inference system.
+  Runs the planner_supervisor per turn; emits safety_posture.
+
+starting_agent: planner_supervisor
+
+# Model serving — AMD ROCm / vLLM (OpenAI-compatible endpoint)
+# Override at runtime via environment variables:
+#   LOCAL_API_BASE=http://localhost:8000/v1
+#   LOCAL_MODEL=Qwen/Qwen2.5-7B-Instruct
+llm:
+  model: ${LOCAL_MODEL:-Qwen/Qwen2.5-7B-Instruct}
+  base_url: ${LOCAL_API_BASE:-http://localhost:8000/v1}
+  api_key: ${LOCAL_API_KEY:-EMPTY}
+
+server:
+  port: 8080
+  # Startup check: verify AMD/vLLM endpoint is reachable before accepting traffic
+  # Implemented in src/orchestration/amd_check.py
+  startup_check:
+    verify_model_endpoint: true
+
+imports:
+  - planner_supervisor.yaml

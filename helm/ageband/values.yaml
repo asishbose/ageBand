@@ -1,0 +1,71 @@
+# Default values for ageband Helm chart.
+# Override with -f my-values.yaml or --set key=value.
+
+# ── Agent service ────────────────────────────────────────────────────────────
+agent:
+  image:
+    repository: your-registry/ageband-agent
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicaCount: 2
+  port: 8080
+  resources:
+    requests:
+      cpu: "500m"
+      memory: "512Mi"
+    limits:
+      cpu: "2000m"
+      memory: "2Gi"
+
+  # Environment — AMD/vLLM endpoint
+  env:
+    LOCAL_API_BASE: "http://vllm-service:8000/v1"
+    LOCAL_MODEL: "Qwen/Qwen2.5-7B-Instruct"
+    LOCAL_API_KEY: "EMPTY"
+    PLANNER_MAX_ITERATIONS: "8"
+    GATE_CONFIDENCE_THRESHOLD: "0.85"
+    GATE_MIN_TURNS: "2"
+    LOG_LEVEL: "INFO"
+    SKIP_AMD_CHECK: "false"
+
+  # HPA
+  autoscaling:
+    enabled: false
+    minReplicas: 2
+    maxReplicas: 8
+    targetCPUUtilizationPercentage: 70
+
+# ── UI ────────────────────────────────────────────────────────────────────────
+ui:
+  enabled: true
+  image:
+    repository: your-registry/ageband-ui
+    tag: "1.0.0"
+    pullPolicy: IfNotPresent
+  replicaCount: 1
+  port: 80
+  resources:
+    requests:
+      cpu: "100m"
+      memory: "128Mi"
+    limits:
+      cpu: "500m"
+      memory: "256Mi"
+
+# ── Ingress ───────────────────────────────────────────────────────────────────
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: ageband.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# ── Service accounts ─────────────────────────────────────────────────────────
+serviceAccount:
+  create: true
+  name: ""
+  annotations: {}

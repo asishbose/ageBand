@@ -1,0 +1,8 @@
+name: stepup_composer
+description: >
+  Compose a step-up verification message asking the user to confirm their age.
+  Returns action: confirm | restrict | handoff.
+system_prompt: file://prompts/stepup_composer_prompt.md
+output_type: StepUpMessage
+input_filter: compress
+output_filter: final_message
