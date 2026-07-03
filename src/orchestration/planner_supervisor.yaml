@@ -1,0 +1,49 @@
+# planner_supervisor — runtime orchestration agent
+name: planner_supervisor
+description: >
+  Runtime planner-supervisor agent. Runs plan→act→observe→re-plan per turn.
+  Chooses the ROUTE, never the safety OUTCOME.
+  Cannot emit safety_posture, skip guards, take LLM confidence, or persist inferred bands.
+
+system_prompt: file://prompts/planner_supervisor_prompt.md
+
+output_type: PlannerAction
+
+# Deterministic @function_tools — each has a Python precondition wrapper in guardrails.py
+tools:
+  gate:
+    gate_check: true
+  evidence_fabric:
+    read_evidence: true
+    update_evidence: true
+    decay_evidence: true
+  ageband_inference:
+    compute_confidence_tool: true
+  policy_decision:
+    policy_decide: true
+  enforcement:
+    emit_posture: true
+  stepup_verification:
+    persist_confirmed_tool: true
+
+# Delegate subagents (call-and-return; planner keeps identity)
+delegates:
+  - id: signal_extractor
+    description: Extract age-relevant signals from the current turn → SignalSet
+    input_filter: compress
+    output_filter: final_message
+
+  - id: ageband_estimator
+    description: Propose age band + cited cues + evasion flag → AgeBandEstimate (no confidence)
+    input_filter: compress
+    output_filter: final_message
+
+  - id: stepup_composer
+    description: Compose the step-up confirmation/restriction message → StepUpMessage
+    input_filter: compress
+    output_filter: final_message
+
+# Bounded loop — iteration cap enforced in guardrails.py
+planner:
+  max_iterations: 8
+  tool_choice: required
