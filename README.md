@@ -40,6 +40,10 @@ All deterministic modules (gate, evidence_fabric, confidence, policy, enforcemen
 
 ## Quickstart (development)
 
+> **Shortcut:** if you have `make`, `make setup && make run` (agent) plus
+> `make run-ui` (UI, separate terminal) covers steps 1–4 below. See the
+> [Makefile](#makefile) section for the full target list.
+
 ### Prerequisites
 
 - Python 3.12+
@@ -91,6 +95,91 @@ pytest tests/e2e/
 # All tests with coverage
 pytest tests/ --cov=src --cov-report=term-missing
 ```
+
+---
+
+## Makefile
+
+A `Makefile` at the repo root wraps everything above (and the Docker /
+Helm / quality-gate commands further down this README) into short,
+memorable targets. Run `make help` (or just `make`) to see the full,
+auto-generated list — it stays in sync with the file, so it's always
+current.
+
+### One-time setup
+
+```bash
+make setup          # pip install + npm install (UI) + create .env from .env.example
+```
+
+`.env.example` documents every variable the agent reads (`LOCAL_API_BASE`,
+`LOCAL_MODEL`, `LOCAL_API_KEY`, `SKIP_AMD_CHECK`, planner/gate tuning,
+`LOG_LEVEL`). Copy it once via `make setup-env` (also run automatically by
+`make setup`) and edit `.env` for your endpoint — `make run` / `make
+docker-run` read the same defaults, override any of them inline, e.g.
+`make run LOCAL_MODEL=Qwen/Qwen2.5-14B-Instruct`.
+
+### Day-to-day development
+
+| Command | What it does |
+|---|---|
+| `make run` | Start the agent service (`uvicorn --reload`, `SKIP_AMD_CHECK=true`) |
+| `make run-ui` | Start the Vite UI dev server (proxies `/v1/` → `localhost:8080`) |
+| `make health` | Curl the local `/health` endpoint |
+| `make test` | Full suite with coverage (`tests/`) |
+| `make test-unit` / `test-integration` / `test-e2e` | Run one test tier only |
+| `make test-ui` | Run the UI's vitest suite |
+| `make lint` / `make lint-ui` | ruff (Python) / eslint (UI) |
+| `make format` | black + `ruff --fix` |
+| `make typecheck` | `mypy --strict` |
+| `make complexity` | Radon CC + MI thresholds |
+| `make quality` | lint + typecheck + complexity + the 85% coverage gate, in one shot — what CI should run |
+
+### Docker
+
+| Command | What it does |
+|---|---|
+| `make docker` | Build `ageband-agent:$(VERSION)` (+ `:latest`) locally |
+| `make docker-ui` | Build `ageband-ui:$(VERSION)` (+ `:latest`) locally (via `src/ui/Dockerfile.ui`) |
+| `make docker-build-all` | Build both images |
+| `make docker-run` | Run the agent image locally on port 8080 |
+| `make docker-run-ui` | Run the UI image locally on port 8081 (nginx) |
+| `make docker-stop` | Stop both local containers |
+| `make docker-push IMAGEREPO=myregistry:5000` | Tag + push the **agent** image only |
+| `make docker-push-ui IMAGEREPO=myregistry:5000` | Tag + push the **UI** image only |
+| `make docker-push-all IMAGEREPO=myregistry:5000` | Tag + push **both** images |
+
+All push targets fail fast if `IMAGEREPO` isn't set — no registry is
+hardcoded. Pass `VERSION=1.2.3` to tag a real release instead of `latest`
+(default).
+
+### Helm
+
+| Command | What it does |
+|---|---|
+| `make helm-lint` | `helm lint helm/ageband` |
+| `make helm-install-local` | `helm upgrade --install` into the current `kubectl` context using whatever images/tags are already in `values.yaml`, passing through `LOCAL_API_BASE` / `LOCAL_MODEL` |
+| `make helm-release IMAGEREPO=myregistry:5000` | **Builds + pushes both images**, then installs the chart with `agent.image.*` and `ui.image.*` pointed at the freshly-pushed `IMAGEREPO/…:VERSION` — the one-command path from source to a running agent+UI deployment |
+| `make helm-uninstall` | `helm uninstall` the release |
+
+The chart (`helm/ageband/values.yaml`) deploys **both** the agent
+(`deployment-agent.yaml`) and the UI (`deployment-ui.yaml`, toggled via
+`ui.enabled`) — `helm-release` is the target that keeps both images'
+tags in sync with what you just built, so you don't hand-edit
+`values.yaml` before every deploy.
+
+### Cleanup
+
+| Command | What it does |
+|---|---|
+| `make clean` | Remove Python caches, `.pytest_cache`, `.mypy_cache`, `.ruff_cache`, coverage output, `build/`/`dist/` |
+| `make clean-ui` | Remove `src/ui/dist` and `src/ui/node_modules` |
+| `make clean-all` | `clean` + `clean-ui` + local virtualenvs |
+
+All targets are declared `.PHONY`; `IMAGE_NAME`, `HELM_CHART_PATH`,
+`LOCAL_API_BASE`, `LOCAL_MODEL`, etc. are Makefile variables you can
+override per-invocation (`make run LOCAL_API_BASE=http://gpu-box:8000/v1`)
+without editing the file.
 
 ---
 
