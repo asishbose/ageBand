@@ -8,6 +8,7 @@ node_modules/
 .cursor/
 prompts/
 AGENTS.md
+BUILD_PROMPT.md
 
 # Python bytecode + caches
 __pycache__/
