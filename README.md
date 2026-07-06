@@ -81,7 +81,7 @@ load-bearing.
 
 - Python 3.12+
 - Node 20+ (for the UI)
-- A running [vLLM](https://github.com/vllm-project/vllm) instance on AMD ROCm (or any OpenAI-compatible endpoint)
+- A running [vLLM](https://github.com/vllm-project/vllm) instance on AMD ROCm (or any OpenAI-compatible endpoint) — **optional**: the system runs demo-ready with no GPU via the offline fallback (see [Inference backends](#inference-backends--determinism) above)
 
 ### 1. Install Python dependencies
 
@@ -99,9 +99,18 @@ export LOCAL_API_KEY=EMPTY
 
 ### 3. Start the agent service
 
+**With a model endpoint (AMD/vLLM):**
 ```bash
 SKIP_AMD_CHECK=true uvicorn src.orchestration.api:app --host 0.0.0.0 --port 8080 --reload
 ```
+
+**Without a GPU — offline / deterministic mode (demo-ready, no model required):**
+```bash
+AGEBAND_INFERENCE_MODE=deterministic SKIP_AMD_CHECK=true \
+  uvicorn src.orchestration.api:app --host 0.0.0.0 --port 8080 --reload
+```
+
+In offline mode the keyword extractor (`signal_extraction/keyword_extractor.py`) and rule estimator (`ageband_inference/rule_estimator.py`) replace the LLM delegates. All safety logic (gate, confidence, policy, posture, guardrails) runs identically. The full demo pipeline works end-to-end with no GPU.
 
 ### 4. Build and start the UI
 
@@ -115,19 +124,44 @@ The UI proxies `/v1/` to `localhost:8080`. Open http://localhost:5173.
 
 ### 5. Run tests
 
+> `PYTHONPATH=.` is required because the project does not install itself as an editable package in all environments.
+
 ```bash
 # Unit tests (fast, mocked LLM)
-pytest tests/unit/
+PYTHONPATH=. pytest tests/unit/
 
 # Integration tests
-pytest tests/integration/
+PYTHONPATH=. pytest tests/integration/
 
-# E2E scenario tests (adversarial, fairness, happy-path)
-pytest tests/e2e/
+# E2E scenario tests (adversarial, fairness, happy-path, offline scenarios)
+PYTHONPATH=. pytest tests/e2e/
 
 # All tests with coverage
-pytest tests/ --cov=src --cov-report=term-missing
+PYTHONPATH=. pytest tests/ --cov=src --cov-report=term-missing
 ```
+
+---
+
+## API reference
+
+The agent service exposes a FastAPI app at `http://localhost:8080`.
+
+| Route | Method | Description |
+|---|---|---|
+| `GET /health` | — | Liveness check — `{"status": "ok"}` |
+| `POST /v1/turn` | JSON body | Process a turn; returns full verbose session state (band, confidence, posture, evidence, planner trace) |
+| `POST /v1/chat/completions` | OpenAI-compatible body | Same pipeline as `/v1/turn`; response wraps `SessionState` in `choices[0].message.content` — used by the UI's agent client |
+| `POST /v1/confirm` | `{"session_id": ..., "band": ...}` | Persist a confirmed age band for a session; calls `persist_confirmed(..., confirmed=True)` |
+
+### `/v1/turn` example
+
+```bash
+curl -s -X POST http://localhost:8080/v1/turn \
+  -H "Content-Type: application/json" \
+  -d '{"session_id":"demo","turn_text":"i need help w my homework lol","turn_number":1}' | python3 -m json.tool
+```
+
+Response fields: `session_id`, `band`, `confidence`, `posture` (`{level, flags}`), `evidence` (cue list + corroboration score), `trace` (planner action list), `step_up` (null or step-up message).
 
 ---
 
@@ -324,19 +358,19 @@ AgeBand is a **safety signal, not surveillance**.
 
 ## Quality gates
 
-| Gate | Target |
-|---|---|
-| `pytest` coverage | ≥ 85% |
-| `mypy --strict` | Zero errors |
-| `ruff` | Zero errors |
-| Radon CC | ≤ A (routers/planners), ≤ B with justification |
-| Radon MI | ≥ 75 |
+| Gate | Target | Current (post PR #1) |
+|---|---|---|
+| `pytest` coverage | ≥ 85% | **86.63%** ✓ |
+| `mypy --strict` | Zero errors | **0 PR-introduced errors** ✓ (11 pre-existing on `main` tracked separately — not introduced by PR #1; `mypy` is not fully clean) |
+| `ruff` | Zero errors in `src/` | ✓ |
+| Radon CC | ≤ A (routers/planners), ≤ B with justification | ✓ |
+| Radon MI | ≥ 75 | `runner.py` MI ≈ 37 (written justification in `docs/modules/orchestration.md`) |
 
 Run all gates:
 
 ```bash
-pytest tests/ --cov=src --cov-fail-under=85
-mypy src/ --strict --ignore-missing-imports
+PYTHONPATH=. pytest tests/ --cov=src --cov-fail-under=85
+mypy src/ --strict --ignore-missing-imports --explicit-package-bases
 ruff check src/
 radon cc src/ -n B
 radon mi src/ -n B

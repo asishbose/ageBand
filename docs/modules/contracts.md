@@ -19,6 +19,10 @@
 | `models.py` | All Pydantic v2 data models |
 | `protocols.py` | Python `Protocol` interfaces for each module (runtime-checkable) |
 | `validators.py` | Custom validators that extend Pydantic's built-in checks |
+| `runtime.py` | `use_llm() -> bool` — runtime mode helper (reads `AGEBAND_INFERENCE_MODE`) |
+| `llm_client.py` | Minimal OpenAI-compatible async JSON completion client (Ollama / vLLM / Fireworks) |
+
+> **Structural note — `llm_client.py` placement:** this file is infrastructure code (an HTTP client), not a shared data model or protocol. It lives in `contracts/` because it was added during a broad gap-fix pass. It is a **candidate for relocation** to a dedicated `llm/` or `infra/` package post-hackathon — do not move it now, just be aware the placement is a known smell. It was tracked in the post-PR verification report.
 
 ---
 
@@ -33,8 +37,12 @@ A single age-relevant signal extracted from one turn.
 class Cue(BaseModel):
     type: Literal["vocab", "topic", "disclosure", "style", "reading_level"]
     value: str
-    weight: float  # [0.0, 1.0]
+    weight: float   # [0.0, 1.0] — always re-stamped from the lexicon; never from LLM
+    subtype: str    # optional (default ""); e.g. "guardian_reference", "adult_self_claim"
+                    # drives deterministic weight lookup in signal_extraction/lexicon.py
 ```
+
+`subtype` was added in PR #1 as an additive, backward-compatible field (default `""`). Existing cues without a subtype continue to validate. The field enables the deterministic cue lexicon to assign auditable weights independent of the LLM.
 
 ### `TurnEvent`
 The payload arriving at the system boundary from the host product.
@@ -140,7 +148,11 @@ class AgeBandContext(BaseModel):
     turn_count: int
     evidence_summary: EvidenceSummary | None
     posture: safety_posture | None
+    last_turn_text: str        # transient; populated by gateway_session.ingest()
+                               # used by gate tripwire; never persisted to disk
 ```
+
+`last_turn_text` was added in PR #1 as an additive, backward-compatible field (default `""`). It is populated on every call to `GatewaySessionService.ingest()` but is intentionally **never written to durable storage** — it is a within-turn scratch field used by the always-on tripwire in `gate_service.py`.
 
 ---
 
@@ -187,4 +199,5 @@ Checks that `action_type` is a recognised value from `_VALID_ACTION_TYPES`. Reje
 ```
 tests/unit/contracts/test_models.py      — model instantiation, serialization, invariants
 tests/unit/contracts/test_protocols.py   — runtime_checkable, method signatures
+tests/unit/contracts/test_llm_client.py  — _parse_json paths, complete_json (httpx mocked)
 ```

@@ -2,7 +2,7 @@
 
 **Package:** `src/signal_extraction/`  
 **Phase:** B (parallel)  
-**LLM calls:** Yes — one structured pass per turn via tinyagent delegate  
+**LLM calls:** Optional — one structured pass via LLM **or** deterministic offline fallback  
 **Protocol:** `ISignalExtractor`
 
 ---
@@ -17,7 +17,9 @@ Signal extraction is the **first LLM step** in the pipeline. Given the raw text 
 
 | File | Contents |
 |---|---|
-| `service.py` | `SignalExtractionService` — delegates to the tinyagent LLM |
+| `service.py` | `SignalExtractorService` — LLM path or offline fallback; re-stamps weights from lexicon |
+| `lexicon.py` | **Deterministic cue lexicon** — single source of truth for cue weights, subtypes, and band hints |
+| `keyword_extractor.py` | **Offline keyword extractor** — deterministic M2 path; no LLM required |
 | `reading_level.py` | Deterministic Flesch-Kincaid reading level calculator |
 | `tool.py` | `@function_tool` wrapper for the planner |
 | `signal_extractor.yaml` | tinyagent YAML config for the `signal_extractor` delegate |
@@ -27,8 +29,6 @@ Signal extraction is the **first LLM step** in the pipeline. Given the raw text 
 
 ## Signal Types
 
-The LLM is instructed to extract cues of these types only:
-
 | Type | Description | Example |
 |---|---|---|
 | `vocab` | Vocabulary complexity or simplicity | "sophisticated technical terminology" |
@@ -37,7 +37,50 @@ The LLM is instructed to extract cues of these types only:
 | `style` | Writing style features | "all lowercase, emoji-heavy", "formal prose" |
 | `reading_level` | Flesch-Kincaid grade level | computed deterministically, not by LLM |
 
-Each cue carries a `weight` in `[0.0, 1.0]` representing signal strength.
+Each cue carries:
+- `weight` in `[0.0, 1.0]` — **always assigned by the lexicon, never by the LLM**
+- `subtype` (optional string, e.g. `guardian_reference`, `adult_self_claim`) — drives the lexicon weight lookup; LLM/offline-detected cues include it; legacy cues default to `""`
+
+---
+
+## Deterministic Cue Lexicon (`lexicon.py`)
+
+`lexicon.py` is the **single source of truth for cue weights**. It replaces ad-hoc or LLM-assigned weights with a grounded, auditable mapping:
+
+- Weight hierarchy: **disclosure > topic/context > lexical style** — grounded in author-profiling literature (Schler 2006; Nguyen 2013; PAN; van der Vegt 2020)
+- Lexical/reading-level signals are **down-weighted** for fairness and empirical accuracy (demographics correlate with these, not age alone)
+- Provides `classify_text(text)` — keyword scan returning `(type, subtype, matched_token)` triples
+- Provides `band_hint_any(subtype)` — maps a subtype to `"child"`, `"teen"`, `"adult"`, or `""`
+- Provides `assign_weight_any(subtype)` — canonical weight for a subtype
+
+**Whatever the source of cues (LLM or keyword extractor), weights are always re-stamped from the lexicon in `service.py`.** The model detects; Python scores.
+
+---
+
+## Offline Keyword Extractor (`keyword_extractor.py`)
+
+`keyword_extractor.py` is the **deterministic M2 fallback** — it produces a `SignalSet` from plain keyword matching when no LLM endpoint is configured:
+
+```python
+def extract_cues(text: str) -> SignalSet:
+    """Keyword-scan a turn text and return lexicon-weighted cues."""
+```
+
+Used automatically when `AGEBAND_INFERENCE_MODE=deterministic` or when `LOCAL_MODEL` is unset (auto mode). This is what makes the demo pipeline runnable without a GPU.
+
+---
+
+## Inference Mode Selection
+
+`service.py` selects the extraction path via `src/contracts/runtime.use_llm()`:
+
+| `AGEBAND_INFERENCE_MODE` | Path |
+|---|---|
+| `deterministic` | `keyword_extractor` always |
+| `llm` | LLM endpoint always |
+| `auto` (default) | LLM when `LOCAL_MODEL` is set, else `keyword_extractor` |
+
+In all cases, weights are **re-stamped from the lexicon** after extraction.
 
 ---
 
@@ -83,6 +126,8 @@ class ISignalExtractor(Protocol):
 ## Tests
 
 ```
-tests/unit/signal_extraction/test_reading_level.py   — FK formula, edge cases
-tests/unit/signal_extraction/test_service.py          — LLM mocked, output validation
+tests/unit/signal_extraction/test_reading_level.py      — FK formula, edge cases
+tests/unit/signal_extraction/test_lexicon.py             — weight assignments, band hints, subtype mapping
+tests/unit/signal_extraction/test_keyword_extractor.py  — offline extraction, cue coverage
+tests/unit/signal_extraction/test_service.py             — weight re-stamping, LLM mocked, offline path
 ```

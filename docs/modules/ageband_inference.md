@@ -2,7 +2,7 @@
 
 **Package:** `src/ageband_inference/`  
 **Phase:** B (parallel)  
-**LLM calls:** Yes — one structured pass via tinyagent delegate  
+**LLM calls:** Optional — one structured pass via LLM **or** deterministic offline fallback  
 **Protocol:** `IAgeBandInference`
 
 ---
@@ -19,12 +19,28 @@ AgeBand Inference is the **core reasoning module**. An LLM reads the accumulated
 
 | File | Contents |
 |---|---|
-| `service.py` | `AgeBandInferenceService` — delegates to LLM, validates output |
+| `service.py` | `AgeBandInferenceService` — LLM path or offline fallback; strips confidence from LLM output |
+| `rule_estimator.py` | **Deterministic offline estimator** — tallies lexicon band scores without LLM |
 | `confidence.py` | Deterministic `compute_confidence()` — no LLM involvement |
 | `config.py` | Env-configurable weights and penalties |
 | `tool.py` | `@function_tool` wrapper (`compute_confidence_tool`) |
 | `ageband_estimator.yaml` | tinyagent YAML for the `ageband_estimator` delegate |
 | `prompts/ageband_estimator_prompt.md` | LLM system prompt |
+
+---
+
+## Offline Rule Estimator (`rule_estimator.py`)
+
+`rule_estimator.py` is the **deterministic M4 fallback** — it produces an `AgeBandEstimate` from accumulated evidence without any LLM call. Used when `AGEBAND_INFERENCE_MODE=deterministic` or when no model endpoint is configured.
+
+**Algorithm:**
+1. For each `Cue` in the `EvidenceSummary`, look up its `subtype` (or derive from the value via `lexicon.classify_subtype`)
+2. Map the subtype to a band hint (`child`, `teen`, `adult`) via `lexicon.band_hint_any`
+3. Tally weighted scores per band
+4. **Adversarial evasion guard:** an `adult_self_claim` subtype cue alongside child/teen scoring cues sets `evasion_flag=True` and the adult claim is discounted — the estimator refuses to conclude "adult" when child/teen signals are also present
+5. Pick the dominant band; fall back to `"unknown"` when evidence is absent
+
+Like the LLM path, `rule_estimator` **never emits a confidence value** — confidence is always computed deterministically in `confidence.py`.
 
 ---
 
@@ -123,6 +139,7 @@ def compute_confidence(evidence: EvidenceSummary, estimate: AgeBandEstimate) -> 
 ## Tests
 
 ```
-tests/unit/ageband_inference/test_confidence.py  — formula, penalties, edge cases
-tests/unit/ageband_inference/test_service.py     — LLM mocked, output validation, evasion
+tests/unit/ageband_inference/test_confidence.py     — formula, penalties, edge cases
+tests/unit/ageband_inference/test_rule_estimator.py — offline estimation, adversarial evasion guard
+tests/unit/ageband_inference/test_service.py        — LLM mocked, output validation, offline path
 ```
