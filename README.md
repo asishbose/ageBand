@@ -38,6 +38,39 @@ All deterministic modules (gate, evidence_fabric, confidence, policy, enforcemen
 
 ---
 
+## Inference backends & determinism
+
+The LLM delegates (M2 extraction, M4 estimation) run against any OpenAI-compatible
+endpoint, or a **fully deterministic offline path** when none is configured — so
+the whole pipeline runs end-to-end with no GPU. Select with `AGEBAND_INFERENCE_MODE`:
+
+| Mode | Behaviour |
+|---|---|
+| `deterministic` | Keyword extractor + rule estimator (no model). Offline demo default. |
+| `llm` | Calls `LOCAL_MODEL` at `LOCAL_API_BASE` (Ollama / vLLM / Fireworks). |
+| `auto` (default) | LLM when `LOCAL_MODEL` is set, else deterministic. |
+
+**Cue weights are always assigned by the lexicon** (`signal_extraction/lexicon.py`),
+never by the model — the LLM detects cues, Python scores them, and confidence
+(`ageband_inference/confidence.py`) is computed deterministically from that. This
+makes "confidence is deterministic" true regardless of backend. In the lean build
+there is **no LLM confidence nudge** — confidence is 100% deterministic.
+
+Compare backends on the demo transcripts:
+
+```bash
+ollama pull llama3.2:3b
+python scripts/compare_backends.py llama3.2:3b            # + gemma4:31b, etc.
+```
+
+See [`docs/model_comparison.md`](docs/model_comparison.md) for results, the
+research grounding behind the lexicon weights, and the competitive landscape.
+A key finding: on the adversarial transcript, a 31B model was *fooled* into
+"adult" while the deterministic evasion guard held — the careful shell is
+load-bearing.
+
+---
+
 ## Quickstart (development)
 
 > **Shortcut:** if you have `make`, `make setup && make run` (agent) plus
