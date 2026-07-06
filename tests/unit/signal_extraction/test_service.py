@@ -58,7 +58,10 @@ class TestSignalExtractorServiceValidResponse:
         assert len(result.cues) == 1
         assert result.cues[0].type == "topic"
         assert result.cues[0].value == "mentions homework"
-        assert result.cues[0].weight == pytest.approx(0.75)
+        # Weight is re-stamped deterministically from the lexicon (school_topic),
+        # NOT the LLM-provided 0.75 — the model detects a cue, Python weights it.
+        assert result.cues[0].subtype == "school_topic"
+        assert result.cues[0].weight == pytest.approx(0.6)
 
     @pytest.mark.asyncio
     async def test_empty_cues_list_is_valid(self) -> None:

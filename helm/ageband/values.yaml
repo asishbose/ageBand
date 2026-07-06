@@ -19,6 +19,9 @@ agent:
 
   # Environment — AMD/vLLM endpoint
   env:
+    # Inference mode: "auto" (LLM when LOCAL_MODEL set, else deterministic),
+    # "llm", or "deterministic" (offline fallback — no GPU/model needed).
+    AGEBAND_INFERENCE_MODE: "auto"
     LOCAL_API_BASE: "http://vllm-service:8000/v1"
     LOCAL_MODEL: "Qwen/Qwen2.5-7B-Instruct"
     LOCAL_API_KEY: "EMPTY"

@@ -4,8 +4,6 @@ from __future__ import annotations
 
 import logging
 
-from pydantic import ValidationError
-
 from src.contracts.models import AgeBandContext, StepUpMessage
 from src.contracts.protocols import IStepupVerification
 
