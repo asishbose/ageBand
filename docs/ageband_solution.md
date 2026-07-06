@@ -93,9 +93,9 @@ A focused, demoable slice — the goal is to show the *graduated, confidence-awa
 
 **Build the pipeline.**
 1. **Cheap gate** — per turn, decide whether full inference is needed (thin/unknown/low-confidence/contradicted) or the settled posture stands. Most turns short-circuit here.
-2. **Signal extractor** — one structured LLM pass pulling age-relevant cues, with reading-level as a deterministic tool.
+2. **Signal extractor** — one structured LLM pass pulling age-relevant cues (or deterministic keyword scan when no model is configured), with reading-level as a deterministic tool. Cue weights are always assigned by the auditable lexicon (`signal_extraction/lexicon.py`), never by the model.
 3. **Evidence store** — accumulate cues across the conversation in session-scoped, ephemeral state.
-4. **Age-band inference** — LLM proposes {band, cited cues}; confidence computed deterministically from the evidence with a bounded model nudge; starts at *unknown*.
+4. **Age-band inference** — LLM proposes {band, cited cues} (or deterministic rule estimator when offline, with built-in adversarial evasion guard); confidence computed deterministically from the evidence; starts at *unknown*.
 5. **Policy engine** — deterministic table maps band + confidence → a `safety_posture`, with a step-up threshold.
 6. **Enforcement + UI** — the host honors the `safety_posture`; a live side panel shows band, confidence, the evidence behind it, and the active posture, updating turn by turn.
 
@@ -103,7 +103,7 @@ The steps above aren't wired as a fixed sequence: a **planner-supervisor** decid
 
 **The demo moment.** Run the conversations side by side. The adult stays open. The young-teen one watches confidence climb as school and guardian references stack up, safety tightening step by step until it steps up and asks to confirm age. The ambiguous one is the fairness money shot: confidence *stays low*, so AgeBand tightens only slightly and **asks** rather than locking anyone out. And the adversarial one is the crux — the child claiming to be an adult: instead of being fooled, AgeBand treats the evasion itself as a weak signal (the over-insistence, the dodged topics), keeps confidence from settling on "adult," and routes to the **step-up** — showing exactly where inference hands off to verification. *"It doesn't guess your age and slam a door. It gets more careful the more it suspects a child, it asks before it assumes — and when someone games it, it stops guessing and asks."*
 
-**Stack.** Open-weight LLM (Llama/Qwen-class) served on AMD GPUs via ROCm, or via the Fireworks API; a lightweight session store for accumulated evidence; a deterministic policy table; a small web UI showing the live band, confidence, evidence, and active safety setting.
+**Stack.** Open-weight LLM (Llama/Qwen-class) served on AMD GPUs via ROCm, or via the Fireworks API; a lightweight session store for accumulated evidence; a deterministic policy table; a small web UI showing the live band, confidence, evidence, and active safety setting. The full pipeline also runs **without any GPU or model endpoint** via the deterministic offline path (`AGEBAND_INFERENCE_MODE=deterministic`): a keyword extractor replaces the LLM signal pass, and a rule-based estimator replaces the LLM inference pass — useful for demo replay and CI without model access.
 
 > **Config flip for the inverse use case:** a kids' product wanting to detect *adults* who slip in uses the same pipeline — only the policy table changes (a likely-adult signal in a children's space triggers protection instead of a likely-minor signal in an adult one).
 

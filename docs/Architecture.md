@@ -144,9 +144,9 @@ contracts/              ← Frozen seam: Pydantic models + Protocol interfaces
 | `contracts` | `src/contracts/` | — | Shared models + protocols |
 | `gateway_session` | `src/gateway_session/` | No | `AgeBandContext` |
 | `gate` | `src/gate/` | No | `GateResult` |
-| `signal_extraction` | `src/signal_extraction/` | Yes | `SignalSet` |
+| `signal_extraction` | `src/signal_extraction/` | Optional (LLM or offline keyword extractor) | `SignalSet` |
 | `evidence_fabric` | `src/evidence_fabric/` | No | `EvidenceSummary` |
-| `ageband_inference` | `src/ageband_inference/` | Yes (estimate) / No (confidence) | `AgeBandEstimate` + `float` |
+| `ageband_inference` | `src/ageband_inference/` | Optional (LLM or offline rule estimator) / No (confidence) | `AgeBandEstimate` + `float` |
 | `policy_decision` | `src/policy_decision/` | No | `Decision` |
 | `enforcement` | `src/enforcement/` | No | `safety_posture` |
 | `stepup_verification` | `src/stepup_verification/` | Yes (compose) / No (persist) | `StepUpMessage` + confirmed write |
@@ -232,18 +232,21 @@ safety_posture           ← emitted to host
 
    ── if "analyze" ────────────────────────────────────────────────────
 
-3.  signal_extractor (LLM delegate)
+3.  signal_extractor (LLM delegate OR deterministic keyword extractor)
        input:  turn_text
-       output: SignalSet { cues: [Cue(type, value, weight), ...] }
+       output: SignalSet { cues: [Cue(type, value, weight, subtype), ...] }
+       note:   cue weights are always re-stamped from lexicon.py regardless of source
 
 4.  evidence_fabric.update(session_id, SignalSet)
        → appends cues; recomputes corroboration_score; increments turn_count
        → returns EvidenceSummary
 
-5.  ageband_estimator (LLM delegate)
+5.  ageband_estimator (LLM delegate OR deterministic rule estimator)
        input:  EvidenceSummary
        output: AgeBandEstimate { band, cited_cues, evasion_flag, contradictions }
                (NO confidence field — validated before use)
+       note:   rule_estimator includes adversarial evasion guard (adult_self_claim
+               discounted when child/teen cues are also present)
 
 6.  compute_confidence(EvidenceSummary, AgeBandEstimate) [deterministic Python]
        → float in [0.0, 1.0]
@@ -277,6 +280,8 @@ gate.check() → "reuse_posture"
 ```
 
 This is what makes "always-on" affordable: most turns of a settled adult session cost a single in-memory read.
+
+**Always-on tripwire exception:** even a settled session is re-analysed (`gate.check() → "analyze"`) when the current turn's text contradicts the established band. The gate runs a deterministic keyword scan (no LLM) on `AgeBandContext.last_turn_text` to detect contradictions — e.g. a settled "adult" session where a child-cue phrase appears (device hand-off scenario). This is handled by `gate_service._tripwire_fires()` before the reuse short-circuit.
 
 ### First-turn behavior
 
@@ -732,7 +737,8 @@ test_guardrail_integration.py — out-of-order action rejection
 
 ### Test count
 
-**292 tests, 0 failures.**
+**341 tests, 0 failures.**  
+(+41 from PR #1: lexicon, keyword_extractor, rule_estimator, tripwire, gateway write-back, offline e2e scenarios, API integration, llm_client; +8 from post-PR verification fixes: llm_client unit tests)
 
 ---
 
@@ -753,13 +759,16 @@ All gates are enforced in CI and must pass before merge:
 Run all gates:
 
 ```bash
-pytest tests/ --cov=src --cov-fail-under=85
-mypy src/ --strict --ignore-missing-imports
+PYTHONPATH=. pytest tests/ --cov=src --cov-fail-under=85
+mypy src/ --strict --ignore-missing-imports --explicit-package-bases
 ruff check src/
 black --check src/
 radon cc src/ -n B    # show anything worse than B
 radon mi src/ -n B    # show anything with MI < some threshold
 ```
+
+**Current status (post PR #1 + verification fixes):**  
+Coverage: **86.63%** (gate: ≥ 85% ✓). Mypy: **0 PR-introduced errors**; 11 pre-existing errors remain on `main` (tool-layer `unused-ignore` comments + one `amd_check.py` null-guard) — tracked separately, not introduced by PR #1. `runner.py` MI ≈ 37 (below ≥ 75 target; written justification in `docs/modules/orchestration.md`).
 
 ---
 

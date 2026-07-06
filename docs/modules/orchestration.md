@@ -126,7 +126,9 @@ Actions dispatch to isolated handler methods. Each handler has CC ≤ 2 (grade A
 | Route | Method | Description |
 |---|---|---|
 | `/health` | GET | Liveness check — returns `{"status": "ok"}` |
-| `/v1/turn` | POST | Process a turn; returns `{"posture": {...}}` |
+| `/v1/turn` | POST | Process a turn; returns full verbose session state |
+| `/v1/chat/completions` | POST | OpenAI-compatible endpoint — same pipeline; returns `SessionState` in the `choices[0].message.content` field (used by the UI's `agentClient`) |
+| `/v1/confirm` | POST | Persist a confirmed age band for a session (`{"session_id": ..., "band": ...}`) |
 
 ### Turn request
 
@@ -138,20 +140,29 @@ Actions dispatch to isolated handler methods. Each handler has CC ≤ 2 (grade A
 }
 ```
 
-### Turn response
+### Turn response (verbose)
+
+`/v1/turn` now returns the full session state, not just `posture`. The legacy `"posture"` key is preserved for back-compat:
 
 ```json
 {
-  "posture": {
-    "level": "caution",
-    "flags": {
-      "mature_content": false,
-      "feature_full": true,
-      "tone_strict": true
-    }
-  }
+  "session_id": "sess-abc123",
+  "band": "teen",
+  "confidence": 0.61,
+  "posture": {"level": "restricted", "flags": {"mature_content": false, "feature_full": false, "tone_strict": true}},
+  "evidence": {"session_id": "sess-abc123", "cues": [...], "corroboration_score": 0.72, "turn_count": 3},
+  "trace": [{"action_type": "gate_check", "params": {}}, ...],
+  "step_up": null
 }
 ```
+
+### Confirm request
+
+```json
+{"session_id": "sess-abc123", "band": "adult"}
+```
+
+This calls `persist_confirmed(session_id, band, confirmed=True)` — the confirmed band overrides inference on all future turns for that session.
 
 ---
 
@@ -175,6 +186,7 @@ In degraded mode (check fails at startup), the service logs a warning and contin
 | `LOCAL_API_BASE` | `http://localhost:8000/v1` | vLLM/AMD OpenAI-compatible endpoint |
 | `LOCAL_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Model name to serve |
 | `LOCAL_API_KEY` | `EMPTY` | API key (vLLM default = "EMPTY") |
+| `AGEBAND_INFERENCE_MODE` | `auto` | `deterministic` / `llm` / `auto` — selects offline or LLM inference path |
 | `PLANNER_MAX_ITERATIONS` | `8` | Iteration cap per turn |
 | `SKIP_AMD_CHECK` | `false` | Skip endpoint verification at startup |
 
@@ -208,6 +220,8 @@ class IOrchestration(Protocol):
 | `_resolve_route` | 7 | B (justified: 3-branch router) |
 | All handlers | 1–2 | A |
 
+**Maintainability index note:** `runner.py` currently scores MI ≈ 37 (radon grade A, below the project's MI ≥ 75 target). This reflects structural breadth — the file is the integration seam and owns the planner loop, all action handlers, result appliers, and dispatch table. Every individual method stays at CC grade A; the low MI is a consequence of the file's size, not of tangled logic. The appropriate refactor (splitting into `ActionExecutor` + `ResultApplier` sub-objects) is deferred until the action set stabilises post-hackathon.
+
 ---
 
 ## Tests
@@ -215,10 +229,12 @@ class IOrchestration(Protocol):
 ```
 tests/unit/orchestration/test_guardrails.py           — all 7 invariants, happy path, cap
 tests/unit/orchestration/test_amd_check.py            — reachable, timeout, model mismatch
+tests/integration/test_api.py                         — /v1/turn (verbose), /v1/chat/completions, /v1/confirm
 tests/integration/test_happy_path.py                  — adult, teen, unknown
 tests/integration/test_gate_short_circuit.py          — settled session reuse
 tests/integration/test_stepup_flow.py                 — child+high confidence
 tests/integration/test_guardrail_integration.py       — out-of-order rejection
+tests/e2e/test_offline_scenarios.py                   — all four demo scenarios (offline/deterministic path)
 tests/e2e/test_clear_adult.py                         — standard posture, fairness
 tests/e2e/test_young_teen.py                          — elevated posture
 tests/e2e/test_ambiguous_adult.py                     — fairness: unknown+low → standard
