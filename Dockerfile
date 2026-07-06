@@ -24,9 +24,8 @@ WORKDIR /app
 COPY --from=builder /venv /venv
 ENV PATH="/venv/bin:$PATH"
 
-# Copy application source
+# Copy application source (prompt files live under src/**/prompts/)
 COPY src/ ./src/
-COPY prompts/ ./prompts/
 COPY pyproject.toml .
 
 # Environment defaults — override at runtime via env vars or Helm values
