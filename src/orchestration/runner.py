@@ -7,6 +7,7 @@ import os
 from typing import Any
 
 from src.ageband_inference.confidence import compute_confidence
+from src.ageband_inference.service import AgeBandInferenceService
 from src.audit_fairness.service import AuditFairnessService
 from src.contracts.models import (
     AgeBandContext,
@@ -20,6 +21,7 @@ from src.contracts.models import (
 )
 from src.enforcement.service import EnforcementService
 from src.evidence_fabric.service import EvidenceFabricService
+from src.gate import config as gate_config
 from src.gate.gate_service import GateService
 from src.gateway_session.service import GatewaySessionService
 from src.orchestration.guardrails import (
@@ -31,6 +33,8 @@ from src.orchestration.guardrails import (
     record_action_completed,
 )
 from src.policy_decision.service import PolicyDecisionService
+from src.signal_extraction.service import SignalExtractorService
+from src.stepup_verification.persistence import get_confirmed
 
 logger = logging.getLogger(__name__)
 
@@ -60,7 +64,7 @@ class _TurnState:
 
     __slots__ = (
         "ctx", "posture", "signals", "estimate",
-        "confidence", "decision", "planner",
+        "confidence", "decision", "planner", "stepup", "trace",
     )
 
     def __init__(self, ctx: AgeBandContext) -> None:
@@ -71,6 +75,8 @@ class _TurnState:
         self.confidence: float = ctx.confidence
         self.decision: Decision | None = None
         self.planner: PlannerState = PlannerState()
+        self.stepup: StepUpMessage | None = None
+        self.trace: list[dict[str, Any]] = []
 
 
 class OrchestrationService:
@@ -87,24 +93,95 @@ class OrchestrationService:
         self._enforcement = EnforcementService()
         self._gateway = GatewaySessionService()
         self._audit = AuditFairnessService()
+        self._extractor = SignalExtractorService()
+        self._estimator = AgeBandInferenceService()
         self._mock_delegates: dict[str, Any] = mock_delegates or {}
 
     async def run_turn(self, turn: TurnEvent) -> safety_posture:
         """Process a turn through the planner loop; return the resulting safety_posture."""
+        ts = await self._run(turn)
+        return ts.posture
+
+    async def run_turn_verbose(self, turn: TurnEvent) -> dict[str, Any]:
+        """Process a turn and return the full session state (for the UI/API).
+
+        Same pipeline as run_turn; additionally exposes band, confidence,
+        evidence, the executed-action trace, and any step-up message.
+        """
+        ts = await self._run(turn)
+        return self._session_state(turn, ts)
+
+    async def _run(self, turn: TurnEvent) -> _TurnState:
+        """Run one turn end-to-end: confirmed override → planner loop → persist."""
         ctx = await self._gateway.ingest(turn)
         ts = _TurnState(ctx)
+
+        # Confirmed ground truth overrides inference (design invariant).
+        confirmed = get_confirmed(turn.session_id)
+        if confirmed:
+            self._apply_confirmed(ts, confirmed)
+            self._persist_state(turn, ts)
+            return ts
 
         for iteration in range(MAX_ITERATIONS):
             if check_iteration_cap(iteration, MAX_ITERATIONS) is not None:
                 logger.warning("Planner cap hit session=%s", turn.session_id)
                 self._audit.record(turn.session_id, "cap_reached", {"iteration": iteration})
-                return SAFE_DEFAULT_POSTURE
+                ts.posture = SAFE_DEFAULT_POSTURE
+                self._persist_state(turn, ts)
+                return ts
 
             done = await self._step(turn, ts)
             if done:
                 break
 
-        return ts.posture
+        self._persist_state(turn, ts)
+        return ts
+
+    def _apply_confirmed(self, ts: _TurnState, band: str) -> None:
+        """Short-circuit: build posture directly from a CONFIRMED age band."""
+        estimate = AgeBandEstimate(band=band)  # type: ignore[arg-type]
+        decision = self._policy.decide(estimate, 1.0)
+        ts.estimate = estimate
+        ts.decision = decision
+        ts.confidence = 1.0
+        ts.posture = self._enforcement.emit(decision)
+        ts.trace.append({"action_type": "confirmed_override", "params": {"band": band}})
+        self._audit.record(ts.ctx.session_id, "confirmed_override", {"band": band})
+
+    def _persist_state(self, turn: TurnEvent, ts: _TurnState) -> None:
+        """Write end-of-turn state back to the session store (cross-turn memory)."""
+        band = ts.estimate.band if ts.estimate else ts.ctx.current_band
+        settled = (
+            ts.confidence >= gate_config.CONFIDENCE_REUSE_THRESHOLD
+            and band != "unknown"
+        )
+        evidence = self._evidence.read(turn.session_id)
+        ctx = ts.ctx.model_copy(
+            update={
+                "confidence": ts.confidence,
+                "posture": ts.posture,
+                "current_band": band,
+                "settled": settled,
+                "evidence_summary": evidence,
+            }
+        )
+        ts.ctx = ctx
+        self._gateway.update_context(turn.session_id, ctx)
+
+    def _session_state(self, turn: TurnEvent, ts: _TurnState) -> dict[str, Any]:
+        """Build the UI-facing SessionState dict from turn state."""
+        band = ts.estimate.band if ts.estimate else ts.ctx.current_band
+        evidence = self._evidence.read(turn.session_id)
+        return {
+            "session_id": turn.session_id,
+            "band": band,
+            "confidence": ts.confidence,
+            "posture": ts.posture.model_dump(),
+            "evidence": evidence.model_dump(),
+            "trace": ts.trace,
+            "step_up": ts.stepup.model_dump() if ts.stepup else None,
+        }
 
     async def _step(self, turn: TurnEvent, ts: _TurnState) -> bool:
         """Execute one planner step; return True when the turn is finished."""
@@ -137,6 +214,7 @@ class OrchestrationService:
             return True
 
         record_action_completed(action.action_type, ts.planner)
+        ts.trace.append({"action_type": action.action_type, "params": dict(action.params)})
         return self._apply_result(action.action_type, result, turn.session_id, ts)
 
     # ------------------------------------------------------------------
@@ -180,6 +258,11 @@ class OrchestrationService:
         ts.ctx = ts.ctx.model_copy(update={"posture": result})
         self._audit.record(session_id, "posture_emitted", {"level": result.level})
         return not (ts.decision and ts.decision.action == "step_up")
+
+    def _apply_stepup(self, result: Any, _sid: str, ts: _TurnState) -> bool:
+        if isinstance(result, StepUpMessage):
+            ts.stepup = result
+        return True
 
     # ------------------------------------------------------------------
     # Deterministic routing (replaces LLM planner in lean / test builds)
@@ -243,12 +326,17 @@ class OrchestrationService:
         mock = self._mock_delegates.get("extract")
         if mock:
             return SignalSet.model_validate(mock)
-        return SignalSet()
+        return await self._extractor.extract(turn)
 
     async def _handle_update_evidence(
         self, action: PlannerAction, turn: TurnEvent, ts: _TurnState
     ) -> Any:
         signals = ts.signals or SignalSet()
+        # Age prior evidence so recent turns weigh more. Applied only once a few
+        # turns of history exist, to keep early-turn behaviour stable.
+        prior = self._evidence.read(turn.session_id)
+        if prior.turn_count >= 2 and prior.cues:
+            self._evidence.decay(turn.session_id)
         return self._evidence.update(turn.session_id, signals)
 
     async def _handle_read_evidence(
@@ -263,7 +351,8 @@ class OrchestrationService:
         if mock:
             from src.contracts.validators import validate_ageband_estimate
             return validate_ageband_estimate(mock)
-        return AgeBandEstimate(band="unknown")
+        evidence = self._evidence.read(turn.session_id)
+        return await self._estimator.estimate(evidence)
 
     async def _handle_confidence(
         self, action: PlannerAction, turn: TurnEvent, ts: _TurnState
@@ -315,4 +404,5 @@ _RESULT_APPLIERS: dict[str, Any] = {
     "compute_confidence": OrchestrationService._apply_confidence,
     "policy_decide": OrchestrationService._apply_decision,
     "emit_posture": OrchestrationService._apply_posture,
+    "delegate_stepup": OrchestrationService._apply_stepup,
 }

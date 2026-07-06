@@ -11,7 +11,6 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-
 # ---------------------------------------------------------------------------
 # Building-block types
 # ---------------------------------------------------------------------------
@@ -25,6 +24,9 @@ class Cue(BaseModel):
     type: Literal["vocab", "topic", "disclosure", "style", "reading_level"]
     value: str
     weight: float = Field(ge=0.0, le=1.0)
+    # Deterministic cue subtype (e.g. "guardian_reference"); drives lexicon
+    # weighting. Optional so LLM/legacy cues without a subtype still validate.
+    subtype: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -214,3 +216,6 @@ class AgeBandContext(BaseModel):
     turn_count: int = Field(default=0, ge=0)
     evidence_summary: EvidenceSummary | None = None
     posture: safety_posture | None = None
+    # Most recent user turn text — transient, in-memory only (never persisted to
+    # disk). Used by the gate tripwire to re-analyse settled sessions.
+    last_turn_text: str = ""
