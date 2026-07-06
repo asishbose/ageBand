@@ -6,11 +6,10 @@ node_modules/
 # and the raw prompt history used to build/iterate decks — kept local,
 # not committed.
 .cursor/
-# Root-level prompt history only — NOT the source prompt files under src/**/prompts/
-/prompts/
+prompts/
 AGENTS.md
 BUILD_PROMPT.md
-
+.coverage
 # Python bytecode + caches
 __pycache__/
 *.py[cod]
