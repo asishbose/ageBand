@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from src.contracts.models import Cue, EvidenceSummary
 from src.evidence_fabric.decay import apply_decay
 

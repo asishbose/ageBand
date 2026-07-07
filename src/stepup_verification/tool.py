@@ -2,12 +2,12 @@
 
 from __future__ import annotations
 
-from agents import function_tool  # type: ignore[import-not-found]
+from agents import function_tool  # openai-agents SDK
 
 from src.stepup_verification.persistence import persist_confirmed
 
 
-@function_tool  # type: ignore[misc]
+@function_tool
 def persist_confirmed_tool(session_id: str, band: str, confirmed: bool) -> str:
     """Persist a confirmed age band.
 

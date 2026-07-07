@@ -23,8 +23,15 @@ def apply_decay(
     for cue in evidence.cues:
         new_weight = cue.weight - decay_rate
         if new_weight > 0.0:
+            # Preserve subtype — dropping it here would cause the lexicon
+            # re-stamp in service.py to lose subtype context on decayed cues.
             surviving.append(
-                Cue(type=cue.type, value=cue.value, weight=new_weight)
+                Cue(
+                    type=cue.type,
+                    value=cue.value,
+                    subtype=cue.subtype,
+                    weight=new_weight,
+                )
             )
 
     return EvidenceSummary(

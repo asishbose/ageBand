@@ -1,0 +1,101 @@
+{
+  "timestamp": "20260707T193325Z",
+  "mode": "deterministic",
+  "languages": [
+    "es",
+    "hi",
+    "fr",
+    "ar",
+    "zh"
+  ],
+  "results": [
+    {
+      "ground_truth": "teen",
+      "predicted": "unknown",
+      "confidence": 0.08399999999999999,
+      "language": "es",
+      "difficulty": "clear",
+      "file": "/mnt/c/mcp/ageBand/tests/fixtures/synthetic_multilang/es/teen_clear_000.json"
+    },
+    {
+      "ground_truth": "teen",
+      "predicted": "unknown",
+      "confidence": 0.08399999999999999,
+      "language": "hi",
+      "difficulty": "clear",
+      "file": "/mnt/c/mcp/ageBand/tests/fixtures/synthetic_multilang/hi/teen_clear_000.json"
+    },
+    {
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.224,
+      "language": "fr",
+      "difficulty": "clear",
+      "file": "/mnt/c/mcp/ageBand/tests/fixtures/synthetic_multilang/fr/adult_clear_000.json"
+    },
+    {
+      "ground_truth": "adult",
+      "predicted": "unknown",
+      "confidence": 0.08399999999999999,
+      "language": "ar",
+      "difficulty": "clear",
+      "file": "/mnt/c/mcp/ageBand/tests/fixtures/synthetic_multilang/ar/adult_clear_000.json"
+    },
+    {
+      "ground_truth": "child",
+      "predicted": "unknown",
+      "confidence": 0.08399999999999999,
+      "language": "zh",
+      "difficulty": "clear",
+      "file": "/mnt/c/mcp/ageBand/tests/fixtures/synthetic_multilang/zh/child_clear_000.json"
+    }
+  ],
+  "confusion_matrix": {
+    "child": {
+      "child": 0,
+      "teen": 0,
+      "adult": 0,
+      "unknown": 1
+    },
+    "teen": {
+      "child": 0,
+      "teen": 0,
+      "adult": 0,
+      "unknown": 2
+    },
+    "adult": {
+      "child": 0,
+      "teen": 0,
+      "adult": 1,
+      "unknown": 1
+    },
+    "unknown": {
+      "child": 0,
+      "teen": 0,
+      "adult": 0,
+      "unknown": 0
+    }
+  },
+  "per_band_metrics": {
+    "child": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "teen": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "adult": {
+      "precision": 1.0,
+      "recall": 0.5,
+      "f1": 0.6666666666666666
+    },
+    "unknown": {
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  }
+}

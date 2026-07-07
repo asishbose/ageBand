@@ -28,7 +28,7 @@
         <mxCell id="n8" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#f5f5f5;strokeColor=#666666;" value="&lt;b&gt;M3 · Evidence Fabric&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; session-scoped, ephemeral&lt;br&gt;&amp;bull; corroboration + decay&lt;br&gt;&amp;bull; tools: update / read / decay&lt;br&gt;&amp;bull; NO profile, NO PII" vertex="1">
           <mxGeometry height="130" width="240" x="100" y="670" as="geometry" />
         </mxCell>
-        <mxCell id="n9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;M4 · Age-Band Inference&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; estimator: LLM or offline rule_estimator&lt;br&gt;&amp;bull; &lt;b&gt;lexical-gate (_STRONG_TYPES):&lt;/b&gt;&lt;br&gt;&amp;nbsp; vocab/style/reading_level alone cannot&lt;br&gt;&amp;nbsp; establish a band — topic/disclosure required&lt;br&gt;&amp;bull; confidence = DETERMINISTIC from evidence&lt;br&gt;&amp;bull; out: AgeBandEstimate {band, cues}" vertex="1">
+        <mxCell id="n9" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#fff2cc;strokeColor=#d6b656;" value="&lt;b&gt;M4 · Age-Band Inference&lt;/b&gt;&lt;br&gt;&lt;br&gt;&amp;bull; estimator: LLM or offline rule_estimator&lt;br&gt;&amp;bull; &lt;b&gt;lexical-gate (STRONG_CUE_TYPES, contracts):&lt;/b&gt;&lt;br&gt;&amp;nbsp; vocab/style/reading_level alone cannot&lt;br&gt;&amp;nbsp; establish a band — topic/disclosure required&lt;br&gt;&amp;bull; confidence = DETERMINISTIC from evidence&lt;br&gt;&amp;bull; out: AgeBandEstimate {band, cues}" vertex="1">
           <mxGeometry height="150" width="260" x="430" y="330" as="geometry" />
         </mxCell>
         <mxCell id="n10" parent="1" style="rounded=1;whiteSpace=wrap;html=1;fontSize=11;align=left;verticalAlign=top;spacingLeft=6;spacingTop=4;fillColor=#ffe6cc;strokeColor=#d79b00;" value="&lt;b&gt;M5 · Policy &amp;amp; Decision&lt;/b&gt;&lt;br&gt;(deterministic)&lt;br&gt;&lt;br&gt;&amp;bull; policy table: band×conf→action&lt;br&gt;&amp;bull; product mode + jurisdiction&lt;br&gt;&amp;bull; step-up threshold&lt;br&gt;&amp;bull; out: Decision" vertex="1">
@@ -333,7 +333,10 @@
         <mxCell id="e64" parent="1" style="rounded=1;html=1;strokeWidth=2;strokeColor=#d79b00;dashed=1;endArrow=open;" edge="1" source="n43" target="n62">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-      </root>
+              <mxCell id="phase_note_t2" value="&lt;b&gt;Phase 1–2 additions&lt;/b&gt;&lt;br/&gt;• EXTRACTOR_MODEL (dual-model, Phase 01)&lt;br/&gt;• language_detect.py — non-English abstention (Phase 06)&lt;br/&gt;• [language_hint: XX] prefix to LLM prompt (Phase 06)&lt;br/&gt;• maturity.py — maturity_high/low weak cues (Phase 07)" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rounded=1;fontSize=10;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="20" y="600" width="340" height="80" as="geometry" />
+        </mxCell>
+</root>
     </mxGraphModel>
   </diagram>
   <diagram name="3 · M4 Age-Band Inference" id="t3">
@@ -413,7 +416,10 @@
         <mxCell id="e88" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#b85450;dashed=1;endArrow=open;" edge="1" source="n77" target="n69" value="serve">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-      </root>
+              <mxCell id="phase_note_t3" value="&lt;b&gt;Phase 1–5 additions&lt;/b&gt;&lt;br/&gt;• ESTIMATOR_MODEL (dual-model, Phase 01)&lt;br/&gt;• band_history → conversation uncertainty penalty (Phase 03)&lt;br/&gt;• 4 masking patterns: mismatch/deflection/register_switching/over_insistence (Phase 04)&lt;br/&gt;• evasion_patterns list on AgeBandEstimate (Phase 04)&lt;br/&gt;• GUIDED_DECODING_ENABLED — JSON schema constraint on M4 (Phase 05)&lt;br/&gt;• embedding_similarity factor in uncertainty penalty (Phase 05)" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rounded=1;fontSize=10;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="20" y="600" width="400" height="100" as="geometry" />
+        </mxCell>
+</root>
     </mxGraphModel>
   </diagram>
   <diagram name="4 · M3 Evidence Fabric" id="t4">
@@ -658,7 +664,10 @@
         <mxCell id="e156" parent="1" style="rounded=1;html=1;strokeWidth=1;strokeColor=#666;dashed=1;endArrow=open;" edge="1" source="n151" target="n153">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-      </root>
+              <mxCell id="phase_note_t7" value="&lt;b&gt;Phase P1-D / Phase 05 additions&lt;/b&gt;&lt;br/&gt;• AMD telemetry badge: collect_amd_telemetry() + /health endpoint (Phase 04)&lt;br/&gt;• amd-smi / rocm-smi integration; graceful-degrade available=False (Phase 04)&lt;br/&gt;• VLLM_METRICS_URL scraping (Phase 04)&lt;br/&gt;• embedding consistency: update_session_similarity() wired in _handle_update_evidence (Phase 05)&lt;br/&gt;• LLM-primary flip: use_llm() auto mode (Phase 05)&lt;br/&gt;• Bounded retry in complete_json (Phase 05)" style="text;html=1;strokeColor=#d6b656;fillColor=#fff2cc;align=left;verticalAlign=top;spacingLeft=4;spacingRight=4;overflow=hidden;rounded=1;fontSize=10;fontFamily=Helvetica;" vertex="1" parent="1">
+          <mxGeometry x="20" y="700" width="420" height="100" as="geometry" />
+        </mxCell>
+</root>
     </mxGraphModel>
   </diagram>
   <diagram name="8 · Agent / Subagent Tree (proposal)" id="t8">

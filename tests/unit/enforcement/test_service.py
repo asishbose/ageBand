@@ -12,7 +12,6 @@ import pytest
 from src.contracts.models import Decision, safety_posture
 from src.enforcement.service import EnforcementService
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

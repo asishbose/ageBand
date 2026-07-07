@@ -6,16 +6,24 @@ age-assurance products.
 
 ## Backends
 
-AgeBand's LLM delegates (signal extraction M2, age-band inference M4) run against
-whatever `LOCAL_MODEL` / `LOCAL_API_BASE` point at, or fall back to a fully
-deterministic path when no endpoint is configured. Switch with one env var:
+AgeBand's LLM delegates run against separate per-delegate model endpoints
+(`EXTRACTOR_MODEL` for M2, `ESTIMATOR_MODEL` for M4), falling back to
+`LOCAL_MODEL` when those vars are unset. Switch with env vars:
 
 ```bash
-# Deterministic (no GPU, no model) — the offline default
+# Deterministic (no GPU, no model) — the offline fallback
 AGEBAND_INFERENCE_MODE=deterministic
 
-# Local model via Ollama
-AGEBAND_INFERENCE_MODE=llm LOCAL_API_BASE=http://localhost:11434/v1 LOCAL_MODEL=llama3.2:3b
+# Dual-Gemma on AMD vLLM (production target):
+EXTRACTOR_MODEL=google/gemma-3-4b-it \
+ESTIMATOR_MODEL=google/gemma-3-27b-it \
+LOCAL_API_BASE=http://vllm-service:8000/v1 \
+  python scripts/compare_backends.py google/gemma-3-4b-it \
+    --extractor google/gemma-3-4b-it --estimator google/gemma-3-27b-it
+
+# Single local model via Ollama (fallback / CI):
+AGEBAND_INFERENCE_MODE=llm LOCAL_API_BASE=http://localhost:11434/v1 LOCAL_MODEL=llama3.2:3b \
+  python scripts/compare_backends.py llama3.2:3b
 ```
 
 Reproduce the table below:
@@ -99,3 +107,29 @@ mid-session hand-offs, no biometric capture, on-prem text. The credible framing
 is **complementary**: AgeBand is the continuous, cheap risk detector that decides
 *when* to invoke a high-assurance check — and **step-up can route to a Yoti/k-ID
 flow**. Cheap smoke detector → expensive sprinkler.
+
+---
+
+## Results — 2026-07-07: Dual-Gemma configuration (Phase P0-C)
+
+**Configuration:** `EXTRACTOR_MODEL=google/gemma-3-4b-it` (M2) + `ESTIMATOR_MODEL=google/gemma-3-27b-it` (M4) on AMD Instinct MI300X via vLLM ROCm.
+
+**Run command:**
+```bash
+EXTRACTOR_MODEL=google/gemma-3-4b-it \
+ESTIMATOR_MODEL=google/gemma-3-27b-it \
+LOCAL_API_BASE=http://vllm-service:8000/v1 \
+  python scripts/compare_backends.py google/gemma-3-27b-it \
+    --extractor google/gemma-3-4b-it --estimator google/gemma-3-27b-it
+```
+
+| scenario | deterministic | gemma-3-4b (extractor only) | gemma-3-4b + gemma-3-27b (dual) |
+|---|---|---|---|
+| clear_adult | adult · c=0.52 · standard | PENDING | PENDING |
+| young_teen | teen · c=0.98 · restricted | PENDING | PENDING |
+| ambiguous_adult | unknown · c=0.08 · standard | PENDING | PENDING |
+| adversarial | teen · c=0.35 · caution | PENDING | PENDING |
+
+> **PENDING — requires AMD Dev Cloud MI300X run.** These rows will be filled in when hardware is available. The slide 12 claim ("31B model correctly abstained on ambiguous_adult") remains grounded in the earlier gemma4:31b run (see original table above). The Gemma 3 27B estimation path uses the same reasoning paradigm; re-validation against MI300X is deferred.
+
+**Slide 12 footnote check:** the original gemma4:31b run showed `ambiguous_adult → unknown · c=0.00 · standard` (the abstention outcome). The dual-Gemma path targets the same behaviour. Until real-hardware numbers are in, slide 12's claim is accurate for the 31B family; mark the slide as "Gemma 3 27B (MI300X — numbers PENDING)."

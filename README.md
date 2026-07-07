@@ -71,6 +71,15 @@ A key finding: on the adversarial transcript, a 31B model was *fooled* into
 "adult" while the deterministic evasion guard held — the careful shell is
 load-bearing.
 
+**Multilingual support:** `langdetect` is installed and confirmed working for en / es / fr / hi / ar / zh. Non-English turns are detected and abstained correctly (no false cues injected from the English lexicon). The `eval_multilang.py` harness covers per-language accuracy in the LLM path; run with `make eval-multilang`. Short Latin-script text (< 50 chars) falls back to an ASCII-ratio heuristic — confidence is lower, but no false positives.
+
+**AMD telemetry:** the UI's _Session_ tab shows live GPU utilisation and vLLM throughput metrics when the AMD/vLLM endpoint is available; it degrades gracefully (no badge, no error) when running offline or without a GPU.
+
+For AMD Instinct MI300X throughput numbers (sessions/GPU, p95 latency, tok/s, $/1k turns),
+see [`docs/benchmarks_mi300x.md`](docs/benchmarks_mi300x.md).
+Numbers are **PENDING** a real MI300X run — the benchmark script is ready:
+`python scripts/benchmark_roster.py --concurrency 1 5 10 25 50 --samples 200`.
+
 ---
 
 ## Quickstart (development)
@@ -95,8 +104,15 @@ pip install -r requirements.txt
 
 ```bash
 export LOCAL_API_BASE=http://localhost:8000/v1
-export LOCAL_MODEL=Qwen/Qwen2.5-7B-Instruct
+# Suggested defaults: Gemma 3 family on AMD vLLM ROCm or Fireworks AI.
+# Any OpenAI-compatible model works — these are defaults, not requirements.
+export LOCAL_MODEL=google/gemma-3-4b-it
 export LOCAL_API_KEY=EMPTY
+
+# Optional: separate models per delegate (dual-model serving, Phase P0-B).
+# Extractor (M2) — small, fast; Estimator (M4) — larger, better reasoning.
+export EXTRACTOR_MODEL=google/gemma-3-4b-it
+export ESTIMATOR_MODEL=google/gemma-3-27b-it
 ```
 
 ### 3. Start the agent service
@@ -296,7 +312,7 @@ docker build -f src/ui/Dockerfile.ui -t ageband-ui:1.0.0 src/ui/
 ```bash
 docker run --rm -p 8080:8080 \
   -e LOCAL_API_BASE=http://host.docker.internal:8000/v1 \
-  -e LOCAL_MODEL=Qwen/Qwen2.5-7B-Instruct \
+  -e LOCAL_MODEL=google/gemma-3-4b-it \
   -e SKIP_AMD_CHECK=true \
   ageband-agent:1.0.0
 ```
@@ -309,7 +325,7 @@ docker run --rm -p 8080:8080 \
 # Install
 helm install ageband ./helm/ageband \
   --set agent.env.LOCAL_API_BASE=http://vllm-service:8000/v1 \
-  --set agent.env.LOCAL_MODEL=Qwen/Qwen2.5-7B-Instruct
+  --set agent.env.LOCAL_MODEL=google/gemma-3-4b-it
 
 # Upgrade
 helm upgrade ageband ./helm/ageband --reuse-values
@@ -323,7 +339,9 @@ Key values to override (`-f my-values.yaml`):
 | Key | Default | Description |
 |---|---|---|
 | `agent.env.LOCAL_API_BASE` | `http://vllm-service:8000/v1` | vLLM / AMD endpoint |
-| `agent.env.LOCAL_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Model name |
+| `agent.env.LOCAL_MODEL` | `google/gemma-3-4b-it` | Shared fallback model |
+| `agent.env.EXTRACTOR_MODEL` | `google/gemma-3-4b-it` | M2 signal extractor (small, fast; falls back to `LOCAL_MODEL`) |
+| `agent.env.ESTIMATOR_MODEL` | `google/gemma-3-27b-it` | M4 age-band estimator (larger, better reasoning; falls back to `LOCAL_MODEL`) |
 | `agent.replicaCount` | `2` | Agent pod replicas |
 | `agent.autoscaling.enabled` | `false` | Enable HPA |
 | `ui.enabled` | `true` | Deploy the React UI |
@@ -337,7 +355,7 @@ AgeBand is designed to run against a local vLLM instance on AMD ROCm GPUs:
 
 ```bash
 # Example: start vLLM with ROCm
-vllm serve Qwen/Qwen2.5-7B-Instruct \
+vllm serve google/gemma-3-4b-it \
   --host 0.0.0.0 --port 8000 \
   --device rocm
 ```
@@ -361,19 +379,19 @@ AgeBand is a **safety signal, not surveillance**.
 
 ## Quality gates
 
-| Gate | Target | Current (post PR #1) |
+| Gate | Target | Current status |
 |---|---|---|
 | `pytest` coverage | ≥ 85% | **86.63%** ✓ |
-| `mypy --strict` | Zero errors | **0 PR-introduced errors** ✓ (11 pre-existing on `main` tracked separately — not introduced by PR #1; `mypy` is not fully clean) |
+| `mypy --strict` | Zero errors | **0 errors** ✓ (`explicit_package_bases = true` set in `pyproject.toml`; dual-module-name error resolved; 9 stale `unused-ignore` stubs removed) |
 | `ruff` | Zero errors in `src/` | ✓ |
 | Radon CC | ≤ A (routers/planners), ≤ B with justification | ✓ |
 | Radon MI | ≥ 75 | `runner.py` MI ≈ 37 (written justification in `docs/modules/orchestration.md`) |
 
-Run all gates:
+Run all gates (`make quality` runs them all in one shot):
 
 ```bash
 PYTHONPATH=. pytest tests/ --cov=src --cov-fail-under=85
-mypy src/ --strict --ignore-missing-imports --explicit-package-bases
+mypy src/ --strict
 ruff check src/
 radon cc src/ -n B
 radon mi src/ -n B

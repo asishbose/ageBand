@@ -78,8 +78,16 @@ class ChatCompletionRequest(BaseModel):
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, object]:
+    """Liveness check. Includes AMD telemetry when running on a GPU endpoint.
+
+    The ``telemetry`` block is additive — existing callers checking only
+    ``status`` are unaffected. When running in deterministic/offline mode
+    or without an AMD GPU, ``telemetry.available`` is False and all GPU
+    fields show "unavailable" / "N/A" — never raises, never fabricates.
+    """
+    from src.orchestration.amd_check import collect_amd_telemetry
+    return {"status": "ok", "telemetry": collect_amd_telemetry()}
 
 
 @app.post("/v1/turn")

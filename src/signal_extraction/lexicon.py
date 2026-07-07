@@ -182,14 +182,19 @@ def detect_age(text: str) -> tuple[str, str, str] | None:
 
 
 # (weight, band_hint) for subtypes produced outside CUE_SPECS: explicit ages
-# (detect_age) and reading-level cues (keyword_extractor). Reading level is
-# down-weighted (0.3) for fairness, per the design.
+# (detect_age), reading-level cues (keyword_extractor), and maturity scorers
+# (maturity.py). All are down-weighted (0.3) for fairness — these are weak signals
+# that must NEVER appear in _STRONG_TYPES (they cannot establish a band alone).
 _SPECIAL_META: dict[str, tuple[float, str]] = {
     "explicit_child_age": (1.0, "child"),
     "explicit_teen_age": (1.0, "teen"),
     "explicit_adult_age": (1.0, "adult"),
     "reading_level_low": (0.3, "child"),
     "reading_level_high": (0.3, "adult"),
+    # Maturity cues (Phase 2): weak nudge for mismatch detection only.
+    # MUST stay out of _STRONG_TYPES — see signal_extraction/maturity.py.
+    "maturity_high": (0.3, "adult"),
+    "maturity_low": (0.3, "child"),
 }
 
 

@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from agents import function_tool  # type: ignore[import-not-found]  # openai-agents SDK
+from agents import function_tool  # openai-agents SDK
 
 from src.contracts.models import Decision
 from src.enforcement.service import EnforcementService
 
 
-@function_tool  # type: ignore[misc]
+@function_tool
 def emit_posture(decision_json: str) -> str:
     """Emit safety_posture for a Decision.
 

@@ -363,7 +363,16 @@ class OrchestrationService:
         prior = self._evidence.read(turn.session_id)
         if prior.turn_count >= 2 and prior.cues:
             self._evidence.decay(turn.session_id)
-        return self._evidence.update(turn.session_id, signals)
+        evidence = self._evidence.update(turn.session_id, signals)
+        # Phase 5: embed this turn and record similarity to session centroid.
+        # No-op when EMBEDDING_MODEL is unset (returns None → no penalty).
+        from src.contracts.embeddings_client import update_session_similarity
+        sim = await update_session_similarity(turn.session_id, turn.turn_text)
+        if sim is not None:
+            self._evidence.set_embedding_similarity(turn.session_id, sim)
+            # Re-read to return the updated summary with embedding_similarity set.
+            evidence = self._evidence.read(turn.session_id)
+        return evidence
 
     async def _handle_read_evidence(
         self, action: PlannerAction, turn: TurnEvent, ts: _TurnState
