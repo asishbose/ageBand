@@ -56,6 +56,14 @@ class TestApi:
         assert state["session_id"] == "api-2"
         _store.clear("api-2")
 
+    def test_roster_sample(self, client: TestClient) -> None:
+        r = client.post("/v1/roster", json={})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["user_count"] >= 1
+        row = body["rows"][0]
+        assert set(row) >= {"username", "band", "confidence", "posture", "top_cues"}
+
     def test_confirm_then_override(self, client: TestClient) -> None:
         _store.clear("api-3")
         clear_confirmed("api-3")

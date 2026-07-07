@@ -262,3 +262,25 @@ body {
   padding: 10px 14px;
   font-size: .85rem;
 }
+
+/* ── View tabs ─────────────────────────────────────────────── */
+.view-tabs { display: flex; gap: 4px; margin: 8px 0; }
+.btn-tab { background: #23272e; color: #cbd2d9; border: 1px solid #3a414b; padding: 6px 18px; border-radius: 6px 6px 0 0; cursor: pointer; }
+.btn-tab-active { background: #3b82f6; color: #fff; border-color: #3b82f6; }
+
+/* ── Roster table ──────────────────────────────────────────── */
+.roster { padding: 8px 4px; }
+.roster-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+.roster-hint { color: #8b94a0; font-size: 0.85rem; }
+.roster-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+.roster-table th, .roster-table td { text-align: left; padding: 8px 10px; border-bottom: 1px solid #2c313a; }
+.roster-table th { color: #8b94a0; font-weight: 600; text-transform: uppercase; font-size: 0.72rem; letter-spacing: 0.04em; }
+.roster-table tr:hover td { background: #20242b; }
+.pill { display: inline-block; padding: 2px 10px; border-radius: 10px; color: #fff; font-size: 0.78rem; font-weight: 600; text-transform: capitalize; }
+.conf-bar { position: relative; background: #2c313a; border-radius: 4px; height: 18px; width: 120px; overflow: hidden; }
+.conf-fill { background: #3b82f6; height: 100%; }
+.conf-num { position: absolute; top: 0; left: 8px; line-height: 18px; font-size: 0.75rem; color: #e6e9ee; }
+.cues-cell { color: #a7b0bb; font-size: 0.8rem; }
+.flag { display: inline-block; margin-right: 4px; padding: 1px 7px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; }
+.flag-stepup { background: #7c3aed; color: #fff; }
+.flag-evasion { background: #b91c1c; color: #fff; }

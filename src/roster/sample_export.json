@@ -1,0 +1,24 @@
+{
+  "guild": { "id": "000", "name": "AgeBand Demo Server" },
+  "channel": { "id": "111", "name": "general" },
+  "messages": [
+    { "id": "1", "type": "Default", "timestamp": "2026-07-06T10:00:00Z", "content": "omg my math teacher gave us so much hw today its not fair", "author": { "id": "u_teen", "name": "jamie", "isBot": false } },
+    { "id": "2", "type": "Default", "timestamp": "2026-07-06T10:01:00Z", "content": "my parents wont let me go to the party this weekend, home by 9", "author": { "id": "u_teen", "name": "jamie", "isBot": false } },
+    { "id": "3", "type": "Default", "timestamp": "2026-07-06T10:02:00Z", "content": "im in 8th grade and school is honestly so stressful rn", "author": { "id": "u_teen", "name": "jamie", "isBot": false } },
+
+    { "id": "4", "type": "Default", "timestamp": "2026-07-06T10:03:00Z", "content": "my mom said i have to finish my homework before recess", "author": { "id": "u_child", "name": "alex", "isBot": false } },
+    { "id": "5", "type": "Default", "timestamp": "2026-07-06T10:04:00Z", "content": "i am 10 and in 5th grade at elementary school", "author": { "id": "u_child", "name": "alex", "isBot": false } },
+
+    { "id": "6", "type": "Default", "timestamp": "2026-07-06T10:05:00Z", "content": "my mortgage renewal is coming up, debating fixed vs variable given inflation", "author": { "id": "u_adult", "name": "morgan", "isBot": false } },
+    { "id": "7", "type": "Default", "timestamp": "2026-07-06T10:06:00Z", "content": "finished my MBA thesis last year, now working in corporate strategy", "author": { "id": "u_adult", "name": "morgan", "isBot": false } },
+
+    { "id": "8", "type": "Default", "timestamp": "2026-07-06T10:07:00Z", "content": "I am definitely an adult, just so you know. I am 25 years old.", "author": { "id": "u_evader", "name": "riley", "isBot": false } },
+    { "id": "9", "type": "Default", "timestamp": "2026-07-06T10:08:00Z", "content": "why do you keep asking, i told you im an adult, i have a job", "author": { "id": "u_evader", "name": "riley", "isBot": false } },
+    { "id": "10", "type": "Default", "timestamp": "2026-07-06T10:09:00Z", "content": "look im obviously an adult okay, stop treating me like a kid, im not in school", "author": { "id": "u_evader", "name": "riley", "isBot": false } },
+
+    { "id": "11", "type": "Default", "timestamp": "2026-07-06T10:10:00Z", "content": "i want to learn more about cooking", "author": { "id": "u_ambig", "name": "sam", "isBot": false } },
+    { "id": "12", "type": "Default", "timestamp": "2026-07-06T10:11:00Z", "content": "what is a good recipe for pasta", "author": { "id": "u_ambig", "name": "sam", "isBot": false } },
+
+    { "id": "13", "type": "Default", "timestamp": "2026-07-06T10:12:00Z", "content": "AgeBand demo bot online", "author": { "id": "b_bot", "name": "helper", "isBot": true } }
+  ]
+}

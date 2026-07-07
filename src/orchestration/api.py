@@ -9,9 +9,10 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -127,6 +128,25 @@ async def chat_completions(req: ChatCompletionRequest) -> dict[str, Any]:
             }
         ],
     }
+
+
+_SAMPLE_EXPORT = Path(__file__).resolve().parent.parent / "roster" / "sample_export.json"
+
+
+@app.post("/v1/roster")
+async def roster(export: dict[str, Any] | None = Body(default=None)) -> dict[str, Any]:  # noqa: B008
+    """Build a per-user age-band roster from a DiscordChatExporter JSON export.
+
+    POST the export JSON as the body; if omitted (or missing "messages"), the
+    bundled synthetic sample is used. Returns one row per non-bot author.
+    """
+    assert _service is not None, "Service not initialised"
+    from src.roster import build_roster
+
+    if not export or "messages" not in export:
+        export = json.loads(_SAMPLE_EXPORT.read_text())
+    rows = await build_roster(export, _service)
+    return {"rows": rows, "user_count": len(rows)}
 
 
 @app.exception_handler(Exception)
