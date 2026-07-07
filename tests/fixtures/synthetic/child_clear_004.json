@@ -1,0 +1,28 @@
+{
+  "band": "child",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "My dad is helping me build a birdhouse for my class project."
+    },
+    {
+      "role": "user",
+      "text": "We need it for our nature unit at school."
+    },
+    {
+      "role": "user",
+      "text": "My teacher said whoever brings the best one gets extra recess."
+    },
+    {
+      "role": "user",
+      "text": "My parents bought all the wood from the hardware store."
+    },
+    {
+      "role": "user",
+      "text": "I hope we win! my mom is helping me paint it blue."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 958682846
+}

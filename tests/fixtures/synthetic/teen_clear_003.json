@@ -1,0 +1,28 @@
+{
+  "band": "teen",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "sophomore year is so much work I have homework in every class"
+    },
+    {
+      "role": "user",
+      "text": "I'm in 10th grade and I already have to think about college"
+    },
+    {
+      "role": "user",
+      "text": "my parents said if my grades don't improve I can't go to homecoming"
+    },
+    {
+      "role": "user",
+      "text": "exam tomorrow and I haven't studied yet bc i was at practice"
+    },
+    {
+      "role": "user",
+      "text": "my teacher moved the test to next week thank god lol"
+    }
+  ],
+  "generation_model": "template",
+  "seed": 1812140441
+}

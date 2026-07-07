@@ -1,0 +1,28 @@
+{
+  "band": "teen",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "I'm studying for the 7th grade science exam and I'm so tired"
+    },
+    {
+      "role": "user",
+      "text": "my teacher said it counts for 30% of our grade which is scary"
+    },
+    {
+      "role": "user",
+      "text": "I got grounded bc I didn't finish my homework on time"
+    },
+    {
+      "role": "user",
+      "text": "the curfew rule at my house is 9pm on school nights which is rough"
+    },
+    {
+      "role": "user",
+      "text": "omg I think I failed the quiz today I guessed on half of it"
+    }
+  ],
+  "generation_model": "template",
+  "seed": 373399426
+}

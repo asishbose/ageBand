@@ -35,6 +35,7 @@ help: ## Show this help
 	@echo "  make run-ui                # Start the UI dev server"
 	@echo "  make test                  # Run the full test suite"
 	@echo "  make quality                # Lint + typecheck + complexity gates"
+	@echo "  make eval-synthetic        # Generate fixtures + run eval harness"
 	@echo ""
 	@awk 'BEGIN {FS=":.*##"} /^[a-zA-Z_-]+:.*?##/ \
 		{printf "  $(GREEN)%-24s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
@@ -222,6 +223,25 @@ helm-release: _require-imagerepo docker-push-all ## Push agent+UI images to IMAG
 .PHONY: helm-uninstall
 helm-uninstall: ## Uninstall the chart from the current context
 	helm uninstall $(HELM_RELEASE)
+
+# ── Synthetic evaluation ───────────────────────────────────────────────────────
+# Env vars required for LLM-backed runs (see docs/modules/synthetic_eval.md):
+#   GENERATOR_API_BASE, GENERATOR_MODEL, GENERATOR_API_KEY
+#   EVAL_API_BASE, EVAL_MODEL, EVAL_API_KEY
+SYNTHETIC_DIR := tests/fixtures/synthetic
+EVAL_N        ?= 20
+
+.PHONY: eval-synthetic
+eval-synthetic: ## Generate fixtures (if absent) then run the eval harness
+	@if [ -z "$$(ls -A $(SYNTHETIC_DIR) 2>/dev/null)" ]; then \
+		$(PYTHON) scripts/generate_synthetic_chats.py --all --count $(EVAL_N); \
+	fi
+	$(PYTHON) scripts/eval_pipeline_against_synthetic.py
+
+.PHONY: eval-clean
+eval-clean: ## Remove generated synthetic fixtures and eval result reports
+	rm -rf $(SYNTHETIC_DIR) scripts/eval_results/
+	@echo "$(GREEN)✓ Synthetic fixtures and eval results removed$(RESET)"
 
 # ── Clean ─────────────────────────────────────────────────────────────────────
 .PHONY: clean

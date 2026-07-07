@@ -1,0 +1,28 @@
+{
+  "band": "adult",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "The deadline on the project is tomorrow and I still have invoices to process."
+    },
+    {
+      "role": "user",
+      "text": "My manager said the forecast needs a complete revision before Friday."
+    },
+    {
+      "role": "user",
+      "text": "I'm trying to balance work-life better now that my kids are in school."
+    },
+    {
+      "role": "user",
+      "text": "My colleague and I disagree on the stakeholder strategy."
+    },
+    {
+      "role": "user",
+      "text": "My salary review is in two weeks and I'm hoping for at least 10%."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 113971123
+}

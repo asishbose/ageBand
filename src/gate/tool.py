@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from agents import function_tool  # type: ignore[import-not-found]  # openai-agents SDK
+from agents import function_tool  # openai-agents SDK
 
 from src.contracts.models import AgeBandContext
 from src.gate.gate_service import GateService

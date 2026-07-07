@@ -26,7 +26,9 @@ def verify_amd_endpoint(
         model: Model name to verify (defaults to LOCAL_MODEL env var).
         timeout: Request timeout in seconds.
     """
-    url = base_url or os.environ.get("LOCAL_API_BASE", "http://localhost:8000/v1")
+    url = base_url if base_url is not None else os.environ.get(
+        "LOCAL_API_BASE", "http://localhost:8000/v1"
+    )
     expected_model = model or os.environ.get("LOCAL_MODEL", "")
 
     models_url = url.rstrip("/") + "/models"

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any
+from typing import Any, Literal, cast, get_args
 
 from src.ageband_inference.confidence import compute_confidence
 from src.ageband_inference.service import AgeBandInferenceService
@@ -39,6 +39,25 @@ from src.stepup_verification.persistence import get_confirmed
 logger = logging.getLogger(__name__)
 
 MAX_ITERATIONS = int(os.environ.get("PLANNER_MAX_ITERATIONS", "8"))
+
+# Mirror of PlannerAction.action_type — used for runtime validation + cast in
+# _resolve_route so the planner can never silently pass a bad action_type to
+# PlannerAction (fail closed: ValueError rather than a Pydantic ValidationError
+# that might be swallowed higher up).
+_ActionType = Literal[
+    "gate_check",
+    "read_evidence",
+    "update_evidence",
+    "compute_confidence",
+    "policy_decide",
+    "emit_posture",
+    "persist_confirmed",
+    "delegate_extract",
+    "delegate_estimate",
+    "delegate_stepup",
+    "finish",
+]
+_VALID_ACTION_TYPES: frozenset[str] = frozenset(get_args(_ActionType))
 
 # Ordered routing sequence: (PlannerState flag attr, action_type or special token).
 # Checked in order — first incomplete flag yields the next action.
@@ -181,6 +200,8 @@ class OrchestrationService:
             "evidence": evidence.model_dump(),
             "trace": ts.trace,
             "step_up": ts.stepup.model_dump() if ts.stepup else None,
+            # Exposed for the eval harness; False when no estimate yet.
+            "evasion_flag": ts.estimate.evasion_flag if ts.estimate else False,
         }
 
     async def _step(self, turn: TurnEvent, ts: _TurnState) -> bool:
@@ -228,7 +249,7 @@ class OrchestrationService:
         applier = _RESULT_APPLIERS.get(action_type)
         if applier is None:
             return False
-        return applier(self, result, session_id, ts)
+        return bool(applier(self, result, session_id, ts))
 
     def _apply_extract(self, result: Any, _sid: str, ts: _TurnState) -> bool:
         if isinstance(result, SignalSet):
@@ -285,8 +306,13 @@ class OrchestrationService:
             if ts.decision and ts.decision.action == "step_up":
                 return PlannerAction(action_type="delegate_stepup", params={})
             return PlannerAction(action_type="finish", params={})
+        if action not in _VALID_ACTION_TYPES:
+            raise ValueError(
+                f"_resolve_route: unknown action_type {action!r}. "
+                f"Valid values: {sorted(_VALID_ACTION_TYPES)}"
+            )
         return PlannerAction(
-            action_type=action,
+            action_type=cast(_ActionType, action),
             params={"ctx_json": ts.ctx.model_dump_json()} if action == "gate_check" else {},
         )
 

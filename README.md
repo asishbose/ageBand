@@ -379,6 +379,26 @@ radon cc src/ -n B
 radon mi src/ -n B
 ```
 
+### Synthetic evaluation
+
+A separate manual eval harness measures pipeline accuracy against LLM-generated
+synthetic transcripts. It is **not** wired into `pytest` or CI — it calls real
+model endpoints and is an offline analysis tool:
+
+```bash
+# Generate 20 fixtures per band×difficulty combo (if empty), then eval:
+GENERATOR_API_BASE=http://localhost:11434/v1 GENERATOR_MODEL=<writer> \
+EVAL_API_BASE=http://localhost:8001/v1      EVAL_MODEL=<evaluator>    \
+  make eval-synthetic
+```
+
+Outputs a confusion matrix (band × band), per-band precision/recall/F1, and
+false-positive rates broken down by difficulty tier (`clear` / `ambiguous` /
+`evasive`). Reports are saved to `scripts/eval_results/<timestamp>.json`.
+
+See [`docs/modules/synthetic_eval.md`](docs/modules/synthetic_eval.md) for the
+full two-model design rationale, CLI reference, and how to read the output.
+
 ---
 
 ## License
