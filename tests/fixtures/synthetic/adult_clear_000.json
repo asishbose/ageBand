@@ -1,0 +1,28 @@
+{
+  "band": "adult",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "Had a meeting with my manager today about the quarterly forecast."
+    },
+    {
+      "role": "user",
+      "text": "The deadline is Friday and the invoice still needs final review."
+    },
+    {
+      "role": "user",
+      "text": "My coworkers and I are presenting to the corporate team next week."
+    },
+    {
+      "role": "user",
+      "text": "Work-life balance has been really tough this quarter honestly."
+    },
+    {
+      "role": "user",
+      "text": "My commute was brutal today but at least I got the promotion news."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 127978094
+}

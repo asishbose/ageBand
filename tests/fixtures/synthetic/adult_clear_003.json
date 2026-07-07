@@ -1,0 +1,28 @@
+{
+  "band": "adult",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "The macroeconomic analysis my team produced is getting a lot of attention."
+    },
+    {
+      "role": "user",
+      "text": "My manager wants me to present it to the corporate board next week."
+    },
+    {
+      "role": "user",
+      "text": "I've been at this job for three years now and finally got a promotion."
+    },
+    {
+      "role": "user",
+      "text": "My wife and I are refinancing the mortgage before rates go up."
+    },
+    {
+      "role": "user",
+      "text": "I have a coworker who keeps missing deadlines and it affects the whole team."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 999270936
+}

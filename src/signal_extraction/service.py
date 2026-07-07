@@ -102,8 +102,9 @@ class SignalExtractorService:
         from src.contracts.llm_client import complete_json
 
         raw = await complete_json(_SYSTEM_PROMPT, turn.turn_text)
-        raw_cues = raw.get("cues", []) if isinstance(raw, dict) else []
-        return {"cues": [c for c in map(self._sanitise_cue, raw_cues) if c]}
+        raw_list = raw.get("cues", []) if isinstance(raw, dict) else []
+        raw_cues: list[object] = raw_list if isinstance(raw_list, list) else []
+        return {"cues": [c for item in raw_cues if (c := self._sanitise_cue(item)) is not None]}
 
     @staticmethod
     def _sanitise_cue(cue: object) -> dict[str, object] | None:

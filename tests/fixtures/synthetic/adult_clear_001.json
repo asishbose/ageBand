@@ -1,0 +1,28 @@
+{
+  "band": "adult",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "I'm negotiating my salary with HR after the annual review."
+    },
+    {
+      "role": "user",
+      "text": "My mortgage payment went up so I need to budget more carefully."
+    },
+    {
+      "role": "user",
+      "text": "My husband and I are trying to save for a bigger house."
+    },
+    {
+      "role": "user",
+      "text": "My manager pushed back on the forecast numbers I submitted."
+    },
+    {
+      "role": "user",
+      "text": "At work we have a big stakeholder presentation next Monday."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 402418010
+}
