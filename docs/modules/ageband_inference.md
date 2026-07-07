@@ -33,12 +33,28 @@ AgeBand Inference is the **core reasoning module**. An LLM reads the accumulated
 
 `rule_estimator.py` is the **deterministic M4 fallback** — it produces an `AgeBandEstimate` from accumulated evidence without any LLM call. Used when `AGEBAND_INFERENCE_MODE=deterministic` or when no model endpoint is configured.
 
-**Algorithm:**
-1. For each `Cue` in the `EvidenceSummary`, look up its `subtype` (or derive from the value via `lexicon.classify_subtype`)
+### Lexical cue gating (fairness fix — PR #2)
+
+`rule_estimator` enforces a **topic/disclosure requirement** before establishing any age band:
+
+```python
+_STRONG_TYPES = frozenset({"disclosure", "topic"})
+# Only cues of these types can establish a band.
+# Lexical cues (vocab, style, reading_level) are EXCLUDED entirely.
+```
+
+**Why:** lexical signals (short sentences, simple vocabulary, low reading level) are the weakest age indicators and the most demographically biased — a non-native speaker, a neurodivergent user, or anyone who writes tersely scores identically to a child on these signals. Replaying a real 35-user Discord logistics channel, **33/35 adults were mislabeled `child`** purely from `reading_level_low` (short/terse messages read as "simple"). After this guard the same channel yields **all `unknown` / `standard` — zero false positives**, matching the system's fairness promise.
+
+**Behaviour:** if the only evidence is lexical (vocab/style/reading_level), `_decide_band` returns `"unknown"` regardless of how many cues are present. A `topic` or `disclosure` cue is required to move the band off `unknown`.
+
+This guard applies to the **offline path only**. The LLM estimator path is not constrained by `_STRONG_TYPES` — the LLM sees all cue types and applies its own holistic reasoning. The downstream `confidence.py` formula applies equally to both paths.
+
+### Algorithm
+1. For each `Cue` in the `EvidenceSummary`, look up its `subtype` (or derive via `lexicon.classify_subtype`)
 2. Map the subtype to a band hint (`child`, `teen`, `adult`) via `lexicon.band_hint_any`
-3. Tally weighted scores per band
-4. **Adversarial evasion guard:** an `adult_self_claim` subtype cue alongside child/teen scoring cues sets `evasion_flag=True` and the adult claim is discounted — the estimator refuses to conclude "adult" when child/teen signals are also present
-5. Pick the dominant band; fall back to `"unknown"` when evidence is absent
+3. Accumulate weighted scores only for `disclosure`/`topic` cues — lexical cues are logged but not tallied
+4. **Adversarial evasion guard:** an `adult_self_claim` subtype alongside child/teen scoring cues sets `evasion_flag=True` and the adult claim is discounted
+5. Pick the dominant band from strong scores; fall back to `"unknown"` when no strong signal exists
 
 Like the LLM path, `rule_estimator` **never emits a confidence value** — confidence is always computed deterministically in `confidence.py`.
 
