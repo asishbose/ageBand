@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime
 
 import pytest
@@ -22,7 +21,6 @@ from src.contracts.models import (
     safety_posture,
 )
 from src.contracts.validators import validate_ageband_estimate, validate_planner_action
-
 
 # ---------------------------------------------------------------------------
 # Cue

@@ -16,8 +16,6 @@ import importlib
 import os
 from unittest.mock import patch
 
-import pytest
-
 from src.contracts.models import AgeBandContext, GateResult
 from src.gate.gate_service import GateService
 

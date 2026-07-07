@@ -20,7 +20,7 @@ Orchestration is the **safety-critical integration layer**. It wires all modules
 | `runner.py` | `OrchestrationService` — planner loop, routing, action dispatch |
 | `guardrails.py` | `PlannerState`, `enforce_preconditions`, `check_iteration_cap`, `SAFE_DEFAULT_POSTURE` |
 | `api.py` | FastAPI app (`/health`, `/v1/turn`) |
-| `amd_check.py` | AMD/vLLM endpoint startup verification |
+| `amd_check.py` | AMD/vLLM endpoint startup verification + `collect_amd_telemetry()` for live GPU/throughput metrics |
 | `planner_supervisor.yaml` | tinyagent YAML — LLM planner config + delegate wiring |
 | `ageband_agent.yaml` | Root tinyagent entrypoint |
 | `prompts/planner_supervisor_prompt.md` | Planner system prompt with explicit prohibitions |
@@ -166,7 +166,7 @@ This calls `persist_confirmed(session_id, band, confirmed=True)` — the confirm
 
 ---
 
-## AMD Endpoint Check (`amd_check.py`)
+## AMD Endpoint Check and Telemetry (`amd_check.py`)
 
 At startup (unless `SKIP_AMD_CHECK=true`), the service calls `verify_amd_endpoint()`:
 
@@ -177,6 +177,36 @@ At startup (unless `SKIP_AMD_CHECK=true`), the service calls `verify_amd_endpoin
 
 In degraded mode (check fails at startup), the service logs a warning and continues — it will fall back to mock/empty responses until the vLLM endpoint becomes available.
 
+### `collect_amd_telemetry()` — Live GPU Telemetry (Phase P1-D)
+
+Provides real-time AMD GPU + vLLM throughput data for the UI telemetry badge.
+Called by the `/health` endpoint:
+
+```python
+@app.get("/health")
+async def health() -> dict[str, object]:
+    from src.orchestration.amd_check import collect_amd_telemetry
+    return {"status": "ok", "telemetry": collect_amd_telemetry()}
+```
+
+**Graceful degrade (required, explicitly tested):** when `AGEBAND_INFERENCE_MODE=deterministic` or when `amd-smi`/`rocm-smi` cannot be found and vLLM metrics are unreachable, the function returns:
+
+```json
+{
+  "available": false,
+  "reason": "deterministic/offline mode — no LLM endpoint configured",
+  "gpu_model": "unavailable",
+  "tok_per_sec": "N/A",
+  ...
+}
+```
+
+All required keys (`available`, `gpu_model`, `rocm_version`, `vram_used_mb`, `vram_total_mb`, `tok_per_sec`, `running_requests`, `extractor_model`, `estimator_model`) are **always present** even in the degrade path — the UI badge can safely access any key without defensive checks.
+
+Telemetry sources (scraped synchronously, graceful on any failure):
+- `_scrape_vllm_metrics()` — Prometheus `/metrics` endpoint (running_requests, gen_tokens_total, gpu_cache_usage_pct)
+- `_query_amd_smi()` — shells out to `amd-smi showmeminfo vram --json` (or `rocm-smi`); configurable via `AMD_SMI_PATH`/`ROCM_SMI_PATH`
+
 ---
 
 ## Configuration
@@ -184,7 +214,7 @@ In degraded mode (check fails at startup), the service logs a warning and contin
 | Env var | Default | Description |
 |---|---|---|
 | `LOCAL_API_BASE` | `http://localhost:8000/v1` | vLLM/AMD OpenAI-compatible endpoint |
-| `LOCAL_MODEL` | `Qwen/Qwen2.5-7B-Instruct` | Model name to serve |
+| `LOCAL_MODEL` | `google/gemma-3-4b-it` | Shared fallback model (overridden by `EXTRACTOR_MODEL`/`ESTIMATOR_MODEL`) |
 | `LOCAL_API_KEY` | `EMPTY` | API key (vLLM default = "EMPTY") |
 | `AGEBAND_INFERENCE_MODE` | `auto` | `deterministic` / `llm` / `auto` — selects offline or LLM inference path |
 | `PLANNER_MAX_ITERATIONS` | `8` | Iteration cap per turn |
@@ -228,7 +258,7 @@ class IOrchestration(Protocol):
 
 ```
 tests/unit/orchestration/test_guardrails.py           — all 7 invariants, happy path, cap
-tests/unit/orchestration/test_amd_check.py            — reachable, timeout, model mismatch
+tests/unit/orchestration/test_amd_check.py            — reachable, timeout, model mismatch; collect_amd_telemetry degrade path
 tests/integration/test_api.py                         — /v1/turn (verbose), /v1/chat/completions, /v1/confirm
 tests/integration/test_happy_path.py                  — adult, teen, unknown
 tests/integration/test_gate_short_circuit.py          — settled session reuse

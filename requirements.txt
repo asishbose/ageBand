@@ -25,3 +25,8 @@ pytest-asyncio>=0.23.7
 
 # Utilities
 python-dotenv>=1.0.1
+
+# Language detection (optional — graceful fallback to Unicode-block heuristics
+# when unavailable). Required for es/fr/de and other Latin-script language
+# detection that Unicode blocks cannot distinguish from English.
+langdetect>=1.0.9

@@ -119,7 +119,7 @@ format: ## Auto-format with black + ruff --fix
 
 .PHONY: typecheck
 typecheck: ## Run mypy --strict
-	mypy src/ --strict --ignore-missing-imports
+	mypy src/ --strict
 
 .PHONY: complexity
 complexity: ## Check Radon cyclomatic complexity + maintainability index

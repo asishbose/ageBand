@@ -23,7 +23,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 class TestApi:
     def test_health(self, client: TestClient) -> None:
-        assert client.get("/health").json() == {"status": "ok"}
+        data = client.get("/health").json()
+        assert data["status"] == "ok"
+        # Additive telemetry block (Phase P1-D) — check shape, not exact values.
+        assert "telemetry" in data
+        assert "available" in data["telemetry"]
 
     def test_turn_returns_band_and_posture(self, client: TestClient) -> None:
         _store.clear("api-1")

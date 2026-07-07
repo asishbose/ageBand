@@ -28,14 +28,27 @@ ENV PATH="/venv/bin:$PATH"
 COPY src/ ./src/
 COPY pyproject.toml .
 
-# Environment defaults — override at runtime via env vars or Helm values
-ENV LOCAL_API_BASE="http://localhost:8000/v1" \
-    LOCAL_MODEL="Qwen/Qwen2.5-7B-Instruct" \
+# Environment defaults — override at runtime via env vars or Helm values.
+# Kept in sync with helm/ageband/values.yaml agent.env so that a plain
+# `docker run` produces identical behaviour to the Helm chart's defaults.
+ENV AGEBAND_INFERENCE_MODE="auto" \
+    LOCAL_API_BASE="http://localhost:8000/v1" \
+    LOCAL_MODEL="google/gemma-3-4b-it" \
     LOCAL_API_KEY="EMPTY" \
+    EXTRACTOR_MODEL="google/gemma-3-4b-it" \
+    ESTIMATOR_MODEL="google/gemma-3-27b-it" \
     PLANNER_MAX_ITERATIONS="8" \
     GATE_CONFIDENCE_THRESHOLD="0.85" \
     GATE_MIN_TURNS="2" \
-    LOG_LEVEL="INFO"
+    LOG_LEVEL="INFO" \
+    SKIP_AMD_CHECK="false" \
+    VLLM_METRICS_URL="" \
+    AMD_SMI_PATH="" \
+    ROCM_SMI_PATH="" \
+    GUIDED_DECODING_ENABLED="" \
+    EMBEDDING_MODEL="" \
+    EMBEDDING_API_BASE="" \
+    EMBEDDING_API_KEY=""
 
 USER ageband
 EXPOSE 8080

@@ -8,6 +8,7 @@ import { PlannerTrace } from './components/PlannerTrace'
 import { StepUpPrompt } from './components/StepUpPrompt'
 import { ChatInput } from './components/ChatInput'
 import { RosterTable } from './components/RosterTable'
+import { AmdTelemetryBadge } from './components/AmdTelemetryBadge'
 
 import clearAdult from './fixtures/clear_adult.json'
 import youngTeen from './fixtures/young_teen.json'
@@ -114,7 +115,12 @@ export function App() {
 
       {view === 'roster' && (
         <main className="app-main">
-          <RosterTable />
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 0', minWidth: 0 }}>
+              <RosterTable />
+            </div>
+            <AmdTelemetryBadge />
+          </div>
         </main>
       )}
 

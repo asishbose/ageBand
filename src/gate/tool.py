@@ -8,7 +8,7 @@ from src.contracts.models import AgeBandContext
 from src.gate.gate_service import GateService
 
 
-@function_tool  # type: ignore[misc]
+@function_tool
 def gate_check(ctx_json: str) -> str:
     """Check the gate for a session.
 

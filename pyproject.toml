@@ -16,7 +16,18 @@ include = ["src*"]
 [tool.mypy]
 strict = true
 python_version = "3.11"
+# explicit_package_bases resolves the "Source file found twice" dual-module-name
+# error that occurs with a src/-layout project where src/ has an __init__.py and
+# mypy discovers ageband_inference.service via both the src/ package root and the
+# workspace root simultaneously. This is the standard mypy fix for src-layout repos.
+explicit_package_bases = true
 exclude = ["src/ui", "tests"]
+
+[[tool.mypy.overrides]]
+# langdetect has no py.typed marker or bundled stubs; suppress import-untyped
+# globally rather than scattering type: ignore comments through language_detect.py.
+module = "langdetect.*"
+ignore_missing_imports = true
 
 [tool.ruff]
 line-length = 100
