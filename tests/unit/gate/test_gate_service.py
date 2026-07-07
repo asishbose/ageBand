@@ -130,15 +130,16 @@ class TestGateServiceEnvOverride:
         """Setting GATE_CONFIDENCE_THRESHOLD=0.5 should cause confidence=0.6 to reuse."""
         import src.gate.config as gate_config
 
-        with patch.dict(os.environ, {"GATE_CONFIDENCE_THRESHOLD": "0.5"}):
-            importlib.reload(gate_config)
-            try:
+        try:
+            with patch.dict(os.environ, {"GATE_CONFIDENCE_THRESHOLD": "0.5"}):
+                importlib.reload(gate_config)
                 result = GateService().check(_ctx(confidence=0.6, turn_count=5))
                 assert result.action == "reuse_posture"
                 assert result.reason == "high_confidence"
-            finally:
-                # Restore defaults so other tests are unaffected.
-                importlib.reload(gate_config)
+        finally:
+            # Reload AFTER the patched env is restored, so the module constants
+            # return to their defaults for every later test.
+            importlib.reload(gate_config)
 
     def test_min_turns_env_var_raises_bar(self) -> None:
         """Setting GATE_MIN_TURNS=5 should require 5+ turns before reusing (when posture exists)."""
@@ -146,15 +147,16 @@ class TestGateServiceEnvOverride:
         from src.contracts.models import safety_posture
 
         existing = safety_posture(level="standard", flags={})
-        with patch.dict(os.environ, {"GATE_MIN_TURNS": "5"}):
-            importlib.reload(gate_config)
-            try:
+        try:
+            with patch.dict(os.environ, {"GATE_MIN_TURNS": "5"}):
+                importlib.reload(gate_config)
                 # turn_count=3 is below the new min of 5 → insufficient_data (posture exists)
                 result = GateService().check(_ctx(confidence=0.0, turn_count=3, posture=existing))
                 assert result.action == "reuse_posture"
                 assert result.reason == "insufficient_data"
-            finally:
-                importlib.reload(gate_config)
+        finally:
+            # Reload AFTER the patched env is restored (see note above).
+            importlib.reload(gate_config)
 
 
 class TestGateResultShape:
