@@ -152,7 +152,8 @@ contracts/              ← Frozen seam: Pydantic models + Protocol interfaces
 | `stepup_verification` | `src/stepup_verification/` | Yes (compose) / No (persist) | `StepUpMessage` + confirmed write |
 | `audit_fairness` | `src/audit_fairness/` | No | ephemeral trace record |
 | `orchestration` | `src/orchestration/` | Yes (planner) | wires all the above |
-| `ui` | `src/ui/` | No | React SPA |
+| `roster` | `src/roster/` | No (replay wrapper) | per-user age-band table from channel export |
+| `ui` | `src/ui/` | No | React SPA (Session + Roster tabs) |
 
 ---
 
@@ -885,6 +886,7 @@ Each module has its own README with complete API, configuration, formulas, and t
 | Gateway Session — turn intake + lifecycle | [docs/modules/gateway_session.md](modules/gateway_session.md) |
 | Audit Fairness — ephemeral trace | [docs/modules/audit_fairness.md](modules/audit_fairness.md) |
 | Orchestration — planner + guardrails + API | [docs/modules/orchestration.md](modules/orchestration.md) |
+| Roster — multi-user channel replay + operator dashboard | [docs/modules/roster.md](modules/roster.md) |
 
 Integration data flow, cross-module contracts, deployment topology, and environment variables:
 

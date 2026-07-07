@@ -139,6 +139,23 @@ async def roster(export: dict[str, Any] | None = Body(default=None)) -> dict[str
 
     POST the export JSON as the body; if omitted (or missing "messages"), the
     bundled synthetic sample is used. Returns one row per non-bot author.
+
+    INTENDED USE — consent boundary
+    --------------------------------
+    This endpoint replays message text through the AgeBand age-band inference
+    pipeline and returns inferred age bands per author. It is intended ONLY for:
+      • A channel you own or operate (e.g. a customer-service bot's own log)
+      • An export of consenting participants (e.g. a research study with IRB)
+      • Fully synthetic / anonymised data (e.g. the bundled sample_export.json)
+
+    DO NOT upload real chat exports of users who have not consented to age-band
+    inference. Inferring age from private non-consenting chat is precisely what
+    AgeBand is designed to avoid — using this endpoint for that purpose
+    contradicts the system's stated ethics and may violate applicable privacy law.
+
+    The endpoint does not persist uploaded exports to disk; all processing is
+    in-memory and ephemeral. Session state is cleared before and after each
+    user's replay pass.
     """
     assert _service is not None, "Service not initialised"
     from src.roster import build_roster

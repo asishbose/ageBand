@@ -36,6 +36,8 @@ TurnEvent
 
 All deterministic modules (gate, evidence_fabric, confidence, policy, enforcement, gateway_session) are pure Python with no LLM calls. Only signal_extraction, ageband_estimator, and stepup_composer delegate to the LLM.
 
+The **roster module** (`src/roster/`) is a demo-layer extension on top of the pipeline: it replays a DiscordChatExporter JSON export through the pipeline — one session per author — and renders a risk-ranked per-user table in the UI (`Session | Roster` tabs). It does not add new inference logic; it reuses the existing pipeline unchanged. See `docs/modules/roster.md` and the `/v1/roster` API endpoint.
+
 ---
 
 ## Inference backends & determinism
@@ -152,6 +154,7 @@ The agent service exposes a FastAPI app at `http://localhost:8080`.
 | `POST /v1/turn` | JSON body | Process a turn; returns full verbose session state (band, confidence, posture, evidence, planner trace) |
 | `POST /v1/chat/completions` | OpenAI-compatible body | Same pipeline as `/v1/turn`; response wraps `SessionState` in `choices[0].message.content` — used by the UI's agent client |
 | `POST /v1/confirm` | `{"session_id": ..., "band": ...}` | Persist a confirmed age band for a session; calls `persist_confirmed(..., confirmed=True)` |
+| `POST /v1/roster` | DiscordChatExporter JSON (optional) | Replay a whole channel export through AgeBand — one session per author — and return a risk-ranked per-user table. Omit body to use the bundled synthetic sample. **Intended use only:** a channel you own, consenting participants, or synthetic data. |
 
 ### `/v1/turn` example
 
