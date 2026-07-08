@@ -1,0 +1,224 @@
+{
+  "eval_model": "offline/rule_estimator",
+  "inference_mode": "deterministic",
+  "timestamp": "2026-07-07T17:25:49.084328+00:00",
+  "settle_confidence_threshold": 0.6,
+  "metrics": {
+    "confusion_matrix": {
+      "child": {
+        "child": 5,
+        "teen": 0,
+        "adult": 0,
+        "unknown": 0
+      },
+      "teen": {
+        "child": 0,
+        "teen": 5,
+        "adult": 0,
+        "unknown": 0
+      },
+      "adult": {
+        "child": 0,
+        "teen": 0,
+        "adult": 5,
+        "unknown": 0
+      }
+    },
+    "per_band": {
+      "child": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "teen": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      },
+      "adult": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1": 1.0
+      }
+    },
+    "fp_by_difficulty": {
+      "clear": {
+        "total": 15,
+        "incorrect": 0,
+        "unsettled": 0,
+        "error_rate": 0.0,
+        "unsettled_rate": 0.0
+      }
+    },
+    "overall_accuracy": 1.0,
+    "total_samples": 15,
+    "settled_rate": 1.0
+  },
+  "per_sample": [
+    {
+      "session_id": "eval-f925b585ca6d",
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.796,
+      "difficulty": "clear",
+      "turns_to_settle": 4,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-e698de1e1d02",
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.796,
+      "difficulty": "clear",
+      "turns_to_settle": 4,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-991721d4b4dc",
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.724,
+      "difficulty": "clear",
+      "turns_to_settle": 4,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-6e6296227761",
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.724,
+      "difficulty": "clear",
+      "turns_to_settle": 4,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-da2bf83df294",
+      "ground_truth": "adult",
+      "predicted": "adult",
+      "confidence": 0.82,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-aaddd7e17318",
+      "ground_truth": "child",
+      "predicted": "child",
+      "confidence": 0.892,
+      "difficulty": "clear",
+      "turns_to_settle": 2,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-ff55555c1c16",
+      "ground_truth": "child",
+      "predicted": "child",
+      "confidence": 0.832,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-fe8d74f5f587",
+      "ground_truth": "child",
+      "predicted": "child",
+      "confidence": 0.832,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-6ace4525d404",
+      "ground_truth": "child",
+      "predicted": "child",
+      "confidence": 0.808,
+      "difficulty": "clear",
+      "turns_to_settle": 4,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-476ad3c49234",
+      "ground_truth": "child",
+      "predicted": "child",
+      "confidence": 0.844,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-905243661e7a",
+      "ground_truth": "teen",
+      "predicted": "teen",
+      "confidence": 0.952,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-d78d889e5ed7",
+      "ground_truth": "teen",
+      "predicted": "teen",
+      "confidence": 0.952,
+      "difficulty": "clear",
+      "turns_to_settle": 2,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-ca7aeb59714c",
+      "ground_truth": "teen",
+      "predicted": "teen",
+      "confidence": 0.916,
+      "difficulty": "clear",
+      "turns_to_settle": 3,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-7124f6df5f6e",
+      "ground_truth": "teen",
+      "predicted": "teen",
+      "confidence": 0.892,
+      "difficulty": "clear",
+      "turns_to_settle": 2,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    },
+    {
+      "session_id": "eval-d2551f938ac1",
+      "ground_truth": "teen",
+      "predicted": "teen",
+      "confidence": 0.796,
+      "difficulty": "clear",
+      "turns_to_settle": 2,
+      "settled": true,
+      "correct": true,
+      "generation_model": "template"
+    }
+  ]
+}

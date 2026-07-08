@@ -1,0 +1,28 @@
+{
+  "band": "adult",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "The quarterly invoice I submitted was kicked back by finance."
+    },
+    {
+      "role": "user",
+      "text": "My colleague is handling the stakeholder communications this week."
+    },
+    {
+      "role": "user",
+      "text": "I told my manager I want to be considered for the promotion."
+    },
+    {
+      "role": "user",
+      "text": "My kids had soccer practice and I had to leave work early."
+    },
+    {
+      "role": "user",
+      "text": "My salary barely covers rent plus the car payment right now."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 939042955
+}

@@ -14,7 +14,6 @@ import pytest
 
 from src.signal_extraction.reading_level import _count_syllables, compute_reading_level
 
-
 # ---------------------------------------------------------------------------
 # compute_reading_level
 # ---------------------------------------------------------------------------

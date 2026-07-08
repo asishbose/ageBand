@@ -23,13 +23,48 @@ agent:
     # "llm", or "deterministic" (offline fallback — no GPU/model needed).
     AGEBAND_INFERENCE_MODE: "auto"
     LOCAL_API_BASE: "http://vllm-service:8000/v1"
-    LOCAL_MODEL: "Qwen/Qwen2.5-7B-Instruct"
+    # Shared fallback model — used when EXTRACTOR_MODEL / ESTIMATOR_MODEL are unset.
+    # Suggested defaults: Gemma 3 family on AMD-hosted Fireworks or local vLLM ROCm.
+    LOCAL_MODEL: "google/gemma-3-4b-it"
     LOCAL_API_KEY: "EMPTY"
+
+    # Per-delegate model overrides (dual-model serving).
+    # Small extractor for low-latency M2 signal extraction (Gemma 3 4B).
+    # Falls back to LOCAL_MODEL when empty — leave empty for single-model deploy.
+    EXTRACTOR_MODEL: "google/gemma-3-4b-it"
+    # Larger estimator for nuanced M4 age-band estimation (Gemma 3 27B).
+    # model_comparison.md finding: bigger model correctly abstains on ambiguous_adult.
+    # Falls back to LOCAL_MODEL when empty — leave empty for single-model deploy.
+    ESTIMATOR_MODEL: "google/gemma-3-27b-it"
+
     PLANNER_MAX_ITERATIONS: "8"
     GATE_CONFIDENCE_THRESHOLD: "0.85"
     GATE_MIN_TURNS: "2"
     LOG_LEVEL: "INFO"
     SKIP_AMD_CHECK: "false"
+
+    # AMD telemetry badge (Phase P1-D).
+    # Override if vLLM metrics are served on a different path/port than LOCAL_API_BASE.
+    # Defaults to LOCAL_API_BASE with /v1 replaced by /metrics.
+    VLLM_METRICS_URL: ""
+    # Path to amd-smi binary (falls back to "amd-smi" on PATH if unset).
+    AMD_SMI_PATH: ""
+    # Path to rocm-smi binary (falls back to "rocm-smi" on PATH if unset).
+    ROCM_SMI_PATH: ""
+
+    # Phase 5: guided decoding (vLLM guided_decoding_backend).
+    # Set to "1" to enable JSON-schema-constrained generation on the M4 estimator.
+    # Requires vLLM >= 0.4.0 with --guided-decoding-backend lm-format-enforcer.
+    # Leave empty (disabled) for Ollama or any endpoint without guided decoding.
+    GUIDED_DECODING_ENABLED: ""
+
+    # Phase 5: embedding consistency (cross-turn persona drift detection).
+    # Set EMBEDDING_MODEL to enable; leave empty to disable (offline no-op).
+    # EMBEDDING_API_BASE defaults to LOCAL_API_BASE (same vLLM process serves both).
+    # Suggested model: "BAAI/bge-small-en-v1.5" (fast, lightweight, on-device).
+    EMBEDDING_MODEL: ""
+    EMBEDDING_API_BASE: ""
+    EMBEDDING_API_KEY: ""
 
   # HPA
   autoscaling:

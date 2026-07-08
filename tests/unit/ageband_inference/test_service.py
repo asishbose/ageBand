@@ -11,7 +11,6 @@ from pydantic import ValidationError
 from src.ageband_inference.service import AgeBandInferenceService
 from src.contracts.models import AgeBandEstimate, EvidenceSummary
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------

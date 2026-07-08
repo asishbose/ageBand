@@ -152,7 +152,8 @@ contracts/              ← Frozen seam: Pydantic models + Protocol interfaces
 | `stepup_verification` | `src/stepup_verification/` | Yes (compose) / No (persist) | `StepUpMessage` + confirmed write |
 | `audit_fairness` | `src/audit_fairness/` | No | ephemeral trace record |
 | `orchestration` | `src/orchestration/` | Yes (planner) | wires all the above |
-| `ui` | `src/ui/` | No | React SPA |
+| `roster` | `src/roster/` | No (replay wrapper) | per-user age-band table from channel export |
+| `ui` | `src/ui/` | No | React SPA (Session + Roster tabs) |
 
 ---
 
@@ -885,7 +886,25 @@ Each module has its own README with complete API, configuration, formulas, and t
 | Gateway Session — turn intake + lifecycle | [docs/modules/gateway_session.md](modules/gateway_session.md) |
 | Audit Fairness — ephemeral trace | [docs/modules/audit_fairness.md](modules/audit_fairness.md) |
 | Orchestration — planner + guardrails + API | [docs/modules/orchestration.md](modules/orchestration.md) |
+| Roster — multi-user channel replay + operator dashboard | [docs/modules/roster.md](modules/roster.md) |
+| Synthetic eval harness — dual-LLM accuracy + fairness measurement | [docs/modules/synthetic_eval.md](modules/synthetic_eval.md) |
 
 Integration data flow, cross-module contracts, deployment topology, and environment variables:
 
 → [docs/integration_architecture.md](integration_architecture.md)
+
+### Diagram tabs — `docs/ageband_modular_architecture.drawio`
+
+| Tab | Title | What it shows |
+|---|---|---|
+| 1 | Overview | End-to-end system boundary: host ↔ AgeBand ↔ vLLM |
+| 2 | Module map | M1–M10 package dependencies and pipeline sequence |
+| 3 | Planner-Supervisor | OODA loop, guardrail precondition checks, iteration cap |
+| 4 | Confidence maths | Deterministic formula: base + cue bonus − penalties |
+| 5 | Policy table | Full band × confidence → posture lookup |
+| 6 | Session lifecycle | State transitions: ingest → analyze / reuse → settle → step-up |
+| 7 | Concurrency model | Async default, sync-on-high-severity timing |
+| 8 | Fairness design | Lexical down-weighting, graduated posture, false-positive loop |
+| 9 | AMD deployment | vLLM on ROCm, startup verification, env-var wiring |
+| 10 | Testing architecture | Unit / integration / e2e tier scope and test count |
+| 11 | Synthetic Eval Harness (dual-LLM) | Generator model A writes transcripts → `tests/fixtures/synthetic/`; Evaluator model B replays through the real pipeline; `make eval-synthetic`; confusion matrix + false-positive-by-difficulty output |

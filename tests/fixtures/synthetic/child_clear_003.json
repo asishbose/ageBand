@@ -1,0 +1,28 @@
+{
+  "band": "child",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "My teacher gave me a gold star sticker for my spelling test."
+    },
+    {
+      "role": "user",
+      "text": "I got every word right even the hard ones."
+    },
+    {
+      "role": "user",
+      "text": "My mom put my test on the fridge next to my drawing."
+    },
+    {
+      "role": "user",
+      "text": "Recess is the best part of elementary school honestly."
+    },
+    {
+      "role": "user",
+      "text": "We play tag and my parents say I run really fast."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 1051802512
+}

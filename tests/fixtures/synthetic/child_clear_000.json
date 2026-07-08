@@ -1,0 +1,28 @@
+{
+  "band": "child",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "My mom picked me up from elementary school today."
+    },
+    {
+      "role": "user",
+      "text": "We played on the playground at recess and I fell."
+    },
+    {
+      "role": "user",
+      "text": "My mom put a bandage on my knee and made hot cocoa."
+    },
+    {
+      "role": "user",
+      "text": "My teacher gave us a math worksheet for tonight."
+    },
+    {
+      "role": "user",
+      "text": "My parents said I can watch TV after I finish it."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 478163327
+}

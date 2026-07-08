@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import pytest
 
+from src.contracts.models import safety_posture
 from src.orchestration.guardrails import (
     ITERATION_CAP,
     SAFE_DEFAULT_POSTURE,
@@ -29,8 +30,6 @@ from src.orchestration.guardrails import (
     require_gate_before_stepup,
     require_policy_before_posture,
 )
-from src.contracts.models import safety_posture
-
 
 # ---------------------------------------------------------------------------
 # Guardrail 1: cannot emit posture before policy_decide
@@ -208,16 +207,6 @@ class TestStepUpRequiresPolicy:
 class TestHappyPath:
     def test_full_correct_order(self) -> None:
         state = PlannerState()
-        order = [
-            ("gate_check", {}),
-            ("delegate_extract", {}),
-            ("update_evidence", {}),
-            ("read_evidence", {}),
-            ("delegate_estimate", {}),
-            ("compute_confidence", {}),
-            ("policy_decide", {}),
-            ("emit_posture", {}),
-        ]
         # Manually set state flags as each action "completes"
         state.gate_checked = True  # gate already done for extract check
 

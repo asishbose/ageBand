@@ -2,13 +2,13 @@
 
 from __future__ import annotations
 
-from agents import function_tool  # type: ignore[import-not-found]  # openai-agents SDK
+from agents import function_tool  # openai-agents SDK
 
 from src.contracts.models import AgeBandEstimate
 from src.policy_decision.service import PolicyDecisionService
 
 
-@function_tool  # type: ignore[misc]
+@function_tool
 def policy_decide(estimate_json: str, confidence: float) -> str:
     """Deterministic policy decision.
 

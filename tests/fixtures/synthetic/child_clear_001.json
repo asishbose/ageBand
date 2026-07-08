@@ -1,0 +1,28 @@
+{
+  "band": "child",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "We have show and tell tomorrow at elementary school."
+    },
+    {
+      "role": "user",
+      "text": "I'm bringing my toy rocket my dad made with me."
+    },
+    {
+      "role": "user",
+      "text": "My parents said I need to go to bed early tonight."
+    },
+    {
+      "role": "user",
+      "text": "We did finger painting in art class today it was so fun."
+    },
+    {
+      "role": "user",
+      "text": "My mom framed my painting and put it on the fridge."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 107420369
+}

@@ -37,6 +37,12 @@ class EvidenceFabricService:
             cues=merged_cues,
             corroboration_score=compute_corroboration(merged_cues),
             turn_count=current.turn_count + 1,
+            # Preserve existing band_history across turns; the orchestration
+            # layer appends to it via update_band_history().
+            band_history=list(current.band_history),
+            # Reset embedding_similarity each turn; new value set via
+            # set_embedding_similarity() after async embedding call.
+            embedding_similarity=None,
         )
         _store.set(session_id, updated)
         _log.info(
@@ -46,6 +52,18 @@ class EvidenceFabricService:
             updated.turn_count,
         )
         return updated
+
+    def set_embedding_similarity(self, session_id: str, similarity: float) -> None:
+        """Record the cosine similarity of the latest turn to the session centroid.
+
+        Called asynchronously by the orchestration layer after the embedding call
+        completes. A no-op if no session exists (e.g. called after an error path).
+        """
+        current = _store.get(session_id)
+        if current is None:
+            return
+        updated = current.model_copy(update={"embedding_similarity": similarity})
+        _store.set(session_id, updated)
 
     def decay(self, session_id: str) -> None:
         """Apply weight decay to stored evidence; discard zero-weight cues."""

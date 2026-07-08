@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import pytest
-
 from src.contracts.models import Cue
 from src.evidence_fabric.corroboration import compute_corroboration
 

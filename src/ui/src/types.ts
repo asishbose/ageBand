@@ -40,3 +40,15 @@ export interface SessionState {
   trace: TraceEntry[]
   step_up: StepUpMessage | null
 }
+
+export interface RosterRow {
+  user_id: string
+  username: string
+  band: AgeBand
+  confidence: number
+  posture: PostureLevel
+  message_count: number
+  top_cues: string[]
+  step_up: boolean
+  evasion: boolean
+}
