@@ -19,10 +19,43 @@
 | `models.py` | All Pydantic v2 data models |
 | `protocols.py` | Python `Protocol` interfaces for each module (runtime-checkable) |
 | `validators.py` | Custom validators that extend Pydantic's built-in checks |
-| `runtime.py` | `use_llm() -> bool` — runtime mode helper (reads `AGEBAND_INFERENCE_MODE`) |
-| `llm_client.py` | Minimal OpenAI-compatible async JSON completion client (Ollama / vLLM / Fireworks) |
+| `runtime.py` | `use_llm() -> bool` — LLM-primary runtime mode helper (reads `AGEBAND_INFERENCE_MODE`) |
+| `llm_client.py` | OpenAI-compatible async JSON completion client with per-delegate model selection and bounded retry (Ollama / vLLM / Fireworks) |
+| `embeddings_client.py` | Lightweight async embeddings client for cross-turn persona consistency (Phase 5); offline no-op when `EMBEDDING_MODEL` is unset |
 
-> **Structural note — `llm_client.py` placement:** this file is infrastructure code (an HTTP client), not a shared data model or protocol. It lives in `contracts/` because it was added during a broad gap-fix pass. It is a **candidate for relocation** to a dedicated `llm/` or `infra/` package post-hackathon — do not move it now, just be aware the placement is a known smell. It was tracked in the post-PR verification report.
+> **Structural note — `llm_client.py` placement:** this file is infrastructure code (an HTTP client), not a shared data model or protocol. It lives in `contracts/` because it was added during a broad gap-fix pass. It is a **candidate for relocation** to a dedicated `llm/` or `infra/` package post-hackathon — do not move it now, just be aware the placement is a known smell.
+
+### `runtime.py` — `use_llm()` (LLM-primary framing, Phase 0)
+
+**LLM-primary framing:** when a model endpoint is configured, the LLM is the *primary* perception path — it runs in-language, reasoning-rich inference on AMD MI300X. The deterministic path is the explicit offline safety-net, not a co-equal alternative.
+
+| `AGEBAND_INFERENCE_MODE` | Behaviour |
+|---|---|
+| `deterministic` | Always use the deterministic offline fallback (keyword extractor + rule estimator). No LLM calls. |
+| `llm` | Always use the LLM path. Fails fast if no model is configured. |
+| `auto` (default) | **LLM-primary:** use LLM when `LOCAL_MODEL`, `EXTRACTOR_MODEL`, or `ESTIMATOR_MODEL` is set; otherwise fall back to deterministic. |
+
+**Invariant unchanged:** `use_llm()` controls which *perception path* runs — the LLM still never sets a weight, confidence, or safety_posture. Python decides those regardless of path.
+
+### `llm_client.py` — `complete_json()`
+
+Bounded retry (Phase 0 addition): up to 3 total attempts with 0.5s / 1.0s exponential backoff on transient errors (network, 5xx, JSON parse). Client errors (4xx) propagate immediately without retry. The retry window is designed to recover the `gemma4:31b` unparseable-JSON case noted in `model_comparison.md` without masking real failures or materially inflating p95 latency.
+
+Per-delegate model helpers: `extractor_model()` → `EXTRACTOR_MODEL` (fallback `LOCAL_MODEL`); `estimator_model()` → `ESTIMATOR_MODEL` (fallback `LOCAL_MODEL`). Pass these to `complete_json(model=...)` from the service layer.
+
+---
+
+## Module-level constants
+
+### `STRONG_CUE_TYPES` (Phase 11 audit — boundary fix)
+
+```python
+STRONG_CUE_TYPES: frozenset[str] = frozenset({"disclosure", "topic"})
+```
+
+The set of cue `type` values that are strong enough for `rule_estimator` to establish a band lean on their own. Previously defined as `_STRONG_TYPES` inside `src/ageband_inference/rule_estimator.py`; promoted to `contracts/models.py` during the Phase 11 conformance audit to eliminate an M2 (`signal_extraction/maturity.py`) → M4 (`ageband_inference/rule_estimator.py`) cross-module dependency that violated the architecture's "depend on contracts, not on each other" rule.
+
+Both `rule_estimator.py` (M4) and `maturity.py` (M2) now import from `contracts.models`. `rule_estimator.py` re-exports it as `_STRONG_TYPES` for backward compatibility with tests that import it from there.
 
 ---
 
@@ -69,9 +102,12 @@ The LLM's proposed age band. **Critically, this model has no `confidence` field.
 ```python
 class AgeBandEstimate(BaseModel):
     band: Literal["child", "teen", "adult", "unknown"]
-    cited_cues: list[str]        # cue descriptions that influenced the estimate
-    evasion_flag: bool           # True if the user appears to be dodging age signals
-    contradictions: list[str]    # inconsistencies in the evidence
+    cited_cues: list[str]           # cue descriptions that influenced the estimate
+    evasion_flag: bool              # True if the user appears to be dodging age signals
+    contradictions: list[str]       # inconsistencies in the evidence
+    # Additive (Phase 4): which masking patterns fired. Empty list → no evasion.
+    # Patterns: "mismatch", "deflection", "register_switching", "over_insistence"
+    evasion_patterns: list[str]     # default []
 ```
 
 ### `GateResult`
@@ -90,8 +126,12 @@ Accumulated session evidence (ephemeral — never persisted as a profile).
 class EvidenceSummary(BaseModel):
     session_id: str
     cues: list[Cue]
-    corroboration_score: float   # [0.0, 1.0] — weighted sum of cue weights
+    corroboration_score: float       # [0.0, 1.0] — weighted sum of cue weights
     turn_count: int
+    # Additive (Phase 3): band per turn for conversation uncertainty penalty.
+    band_history: list[str]          # default [] — no penalty when empty (single-turn)
+    # Additive (Phase 5): cosine similarity to session centroid (embedding consistency).
+    embedding_similarity: float | None  # None = offline no-op, contributes 0 penalty
 ```
 
 ### `Decision`
@@ -197,7 +237,8 @@ Checks that `action_type` is a recognised value from `_VALID_ACTION_TYPES`. Reje
 ## Tests
 
 ```
-tests/unit/contracts/test_models.py      — model instantiation, serialization, invariants
-tests/unit/contracts/test_protocols.py   — runtime_checkable, method signatures
-tests/unit/contracts/test_llm_client.py  — _parse_json paths, complete_json (httpx mocked)
+tests/unit/contracts/test_models.py           — model instantiation, serialization, invariants
+tests/unit/contracts/test_protocols.py        — runtime_checkable, method signatures
+tests/unit/contracts/test_llm_client.py       — _parse_json paths, complete_json (httpx mocked); delegate model override
+tests/unit/contracts/test_embeddings_client.py — cosine similarity, centroid, offline no-op, mocked HTTP paths
 ```

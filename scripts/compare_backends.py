@@ -53,15 +53,37 @@ SCENARIOS: dict[str, list[str]] = {
 }
 
 
-def _set_backend(model: str | None) -> None:
+def _set_backend(
+    model: str | None,
+    extractor: str | None = None,
+    estimator: str | None = None,
+) -> None:
+    """Configure the inference backend for the next scenario run.
+
+    Args:
+        model: Shared model id (used as LOCAL_MODEL / fallback). Pass None for
+               the deterministic path.
+        extractor: Override for EXTRACTOR_MODEL (M2). Defaults to *model*.
+        estimator: Override for ESTIMATOR_MODEL (M4). Defaults to *model*.
+    """
     if model is None:
         os.environ["AGEBAND_INFERENCE_MODE"] = "deterministic"
         os.environ.pop("LOCAL_MODEL", None)
+        os.environ.pop("EXTRACTOR_MODEL", None)
+        os.environ.pop("ESTIMATOR_MODEL", None)
     else:
         os.environ["AGEBAND_INFERENCE_MODE"] = "llm"
         os.environ["LOCAL_MODEL"] = model
         os.environ.setdefault("LOCAL_API_BASE", "http://localhost:11434/v1")
         os.environ.setdefault("LOCAL_API_KEY", "ollama")
+        if extractor:
+            os.environ["EXTRACTOR_MODEL"] = extractor
+        else:
+            os.environ.pop("EXTRACTOR_MODEL", None)
+        if estimator:
+            os.environ["ESTIMATOR_MODEL"] = estimator
+        else:
+            os.environ.pop("ESTIMATOR_MODEL", None)
 
 
 async def _run_scenario(sid: str, turns: list[str]) -> dict:
@@ -77,16 +99,57 @@ async def _run_scenario(sid: str, turns: list[str]) -> dict:
     return state
 
 
+def _parse_args() -> tuple[list[str | None], str | None, str | None]:
+    """Parse CLI args.
+
+    Usage:
+        python scripts/compare_backends.py [model ...]
+                                           [--extractor EXTRACTOR_MODEL]
+                                           [--estimator ESTIMATOR_MODEL]
+
+    --extractor / --estimator apply to ALL non-deterministic backends in the run.
+    Positional args are shared-model ids (LOCAL_MODEL); deterministic is always
+    included first.
+    """
+    args = sys.argv[1:]
+    extractor: str | None = None
+    estimator: str | None = None
+    models: list[str | None] = [None]
+
+    i = 0
+    while i < len(args):
+        if args[i] == "--extractor" and i + 1 < len(args):
+            extractor = args[i + 1]
+            i += 2
+        elif args[i] == "--estimator" and i + 1 < len(args):
+            estimator = args[i + 1]
+            i += 2
+        else:
+            models.append(args[i])
+            i += 1
+
+    return models, extractor, estimator
+
+
 async def main() -> None:
-    backends: list[str | None] = [None] + sys.argv[1:]
-    labels = ["deterministic" if b is None else b for b in backends]
+    backends, extractor_override, estimator_override = _parse_args()
+    labels: list[str] = []
+    for b in backends:
+        if b is None:
+            labels.append("deterministic")
+        elif extractor_override or estimator_override:
+            ext = extractor_override or b
+            est = estimator_override or b
+            labels.append(f"{ext[:14]}+{est[:12]}")
+        else:
+            labels.append(b)
 
     print(f"\n{'scenario':<16} " + " | ".join(f"{lb:<28}" for lb in labels))
     print("-" * (16 + 31 * len(labels)))
     for name, turns in SCENARIOS.items():
         cells = []
         for b in backends:
-            _set_backend(b)
+            _set_backend(b, extractor=extractor_override, estimator=estimator_override)
             sid = f"cmp-{name}-{b or 'det'}"
             try:
                 s = await _run_scenario(sid, turns)

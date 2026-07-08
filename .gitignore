@@ -48,3 +48,6 @@ Thumbs.db
 *.swp
 *.swo
 *~
+
+# Local real Discord export used for the roster demo (contains real usernames)
+src/ui/src/fixtures/discord_export.json

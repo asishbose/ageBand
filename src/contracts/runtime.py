@@ -13,17 +13,35 @@ import os
 def use_llm() -> bool:
     """Return True when LLM delegates should call a real model endpoint.
 
-    Controlled by ``AGEBAND_INFERENCE_MODE``:
-        - ``deterministic`` → always use the offline fallback
-        - ``llm``           → always use the LLM path
-        - ``auto`` (default)→ use the LLM only when ``LOCAL_MODEL`` is configured
+    **LLM-primary framing (Phase 0):** when a model endpoint is configured,
+    the LLM path is the primary perception path — it runs a reasoning-rich
+    in-language pass on AMD MI300X. The deterministic path is the
+    explicit offline safety-net and fallback, not a co-equal alternative.
 
-    The offline fallback keeps the whole pipeline runnable without a GPU or a
-    model server, which is what makes the demo reproducible.
+    Controlled by ``AGEBAND_INFERENCE_MODE``:
+        - ``deterministic`` → always use the deterministic offline fallback
+        - ``llm``           → always use the LLM path (fail if no model is set)
+        - ``auto`` (default)→ LLM when any model endpoint is configured
+                              (LOCAL_MODEL or EXTRACTOR_MODEL or ESTIMATOR_MODEL),
+                              else deterministic fallback
+
+    The deterministic fallback keeps the pipeline runnable without a GPU —
+    that reproducibility guarantee is unchanged; only the framing changed:
+    LLM is now the **assumed default** when a model is present, with
+    deterministic as the explicit, safety-net offline mode.
+
+    **Invariant unchanged:** regardless of which path runs, the LLM NEVER
+    sets a weight, confidence, or safety_posture — Python decides those.
+    This function changes which path is *primary*, not who *decides*.
     """
     mode = os.environ.get("AGEBAND_INFERENCE_MODE", "auto").strip().lower()
     if mode == "deterministic":
         return False
     if mode == "llm":
         return True
-    return bool(os.environ.get("LOCAL_MODEL", "").strip())
+    # "auto": LLM-primary — use LLM when ANY model endpoint is configured.
+    return bool(
+        os.environ.get("LOCAL_MODEL", "").strip()
+        or os.environ.get("EXTRACTOR_MODEL", "").strip()
+        or os.environ.get("ESTIMATOR_MODEL", "").strip()
+    )

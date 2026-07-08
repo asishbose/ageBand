@@ -60,16 +60,6 @@ class TestGuardrailIntegration:
         """Full correct sequence raises no violations."""
         state = PlannerState()
 
-        actions = [
-            ("gate_check", {}),
-            ("delegate_extract", {}),
-            ("update_evidence", {}),
-            ("delegate_estimate", {}),
-            ("compute_confidence", {}),
-            ("policy_decide", {}),
-            ("emit_posture", {}),
-        ]
-
         # Build state incrementally as each action completes
         state.gate_checked = True
 

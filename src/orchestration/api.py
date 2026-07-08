@@ -9,9 +9,10 @@ import logging
 import os
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, Request
+from fastapi import Body, FastAPI, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
@@ -77,8 +78,16 @@ class ChatCompletionRequest(BaseModel):
 
 
 @app.get("/health")
-async def health() -> dict[str, str]:
-    return {"status": "ok"}
+async def health() -> dict[str, object]:
+    """Liveness check. Includes AMD telemetry when running on a GPU endpoint.
+
+    The ``telemetry`` block is additive — existing callers checking only
+    ``status`` are unaffected. When running in deterministic/offline mode
+    or without an AMD GPU, ``telemetry.available`` is False and all GPU
+    fields show "unavailable" / "N/A" — never raises, never fabricates.
+    """
+    from src.orchestration.amd_check import collect_amd_telemetry
+    return {"status": "ok", "telemetry": collect_amd_telemetry()}
 
 
 @app.post("/v1/turn")
@@ -127,6 +136,42 @@ async def chat_completions(req: ChatCompletionRequest) -> dict[str, Any]:
             }
         ],
     }
+
+
+_SAMPLE_EXPORT = Path(__file__).resolve().parent.parent / "roster" / "sample_export.json"
+
+
+@app.post("/v1/roster")
+async def roster(export: dict[str, Any] | None = Body(default=None)) -> dict[str, Any]:  # noqa: B008
+    """Build a per-user age-band roster from a DiscordChatExporter JSON export.
+
+    POST the export JSON as the body; if omitted (or missing "messages"), the
+    bundled synthetic sample is used. Returns one row per non-bot author.
+
+    INTENDED USE — consent boundary
+    --------------------------------
+    This endpoint replays message text through the AgeBand age-band inference
+    pipeline and returns inferred age bands per author. It is intended ONLY for:
+      • A channel you own or operate (e.g. a customer-service bot's own log)
+      • An export of consenting participants (e.g. a research study with IRB)
+      • Fully synthetic / anonymised data (e.g. the bundled sample_export.json)
+
+    DO NOT upload real chat exports of users who have not consented to age-band
+    inference. Inferring age from private non-consenting chat is precisely what
+    AgeBand is designed to avoid — using this endpoint for that purpose
+    contradicts the system's stated ethics and may violate applicable privacy law.
+
+    The endpoint does not persist uploaded exports to disk; all processing is
+    in-memory and ephemeral. Session state is cleared before and after each
+    user's replay pass.
+    """
+    assert _service is not None, "Service not initialised"
+    from src.roster import build_roster
+
+    if not export or "messages" not in export:
+        export = json.loads(_SAMPLE_EXPORT.read_text())
+    rows = await build_roster(export, _service)
+    return {"rows": rows, "user_count": len(rows)}
 
 
 @app.exception_handler(Exception)

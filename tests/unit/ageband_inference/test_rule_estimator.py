@@ -67,6 +67,44 @@ class TestEvasion:
         assert est.band == "adult"
 
 
+class TestLexicalGating:
+    """_STRONG_TYPES fairness guard: style-type cues alone must never establish a band.
+
+    Regression for the 33/35 false-positive finding: adults in a logistics channel
+    were mislabeled 'child' from reading_level/vocab/style signals alone.  After the
+    PR #2 fix (_STRONG_TYPES = frozenset({"disclosure", "topic"})) any evidence that
+    contains only style-typed cues must resolve to band='unknown'.
+    """
+
+    def test_texting_shorthand_alone_is_unknown(self) -> None:
+        """texting_shorthand (type='style') alone must not produce a non-unknown band."""
+        est = rule_estimator.estimate(_evidence(_cue("texting_shorthand", 0.9, "lol fr fr")))
+        assert est.band == "unknown", (
+            "_STRONG_TYPES guard broken: style cue alone should never establish a band"
+        )
+
+    def test_adult_self_claim_alone_is_unknown(self) -> None:
+        """adult_self_claim (type='style') alone must not produce band='adult'.
+
+        The self-claim is treated as weak style evidence, not a hard override.
+        Without a corroborating topic/disclosure cue the band must stay unknown.
+        """
+        est = rule_estimator.estimate(_evidence(_cue("adult_self_claim", 1.0, "I'm an adult")))
+        assert est.band == "unknown", (
+            "_STRONG_TYPES guard broken: adult_self_claim alone should not yield band=adult"
+        )
+
+    def test_mixed_style_cues_without_strong_is_unknown(self) -> None:
+        """Multiple style cues together still cannot establish a band without topic/disclosure."""
+        est = rule_estimator.estimate(
+            _evidence(
+                _cue("texting_shorthand", 0.9, "lol"),
+                _cue("adult_self_claim", 0.8, "I'm 25"),
+            )
+        )
+        assert est.band == "unknown"
+
+
 class TestContract:
     def test_never_emits_confidence(self) -> None:
         est = rule_estimator.estimate(_evidence(_cue("grade_level", 0.9)))

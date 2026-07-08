@@ -7,16 +7,16 @@ from __future__ import annotations
 
 import pytest
 
-from src.ageband_inference.confidence import compute_confidence
+from src.ageband_inference.confidence import _factor_embedding_drift, compute_confidence
 from src.ageband_inference.config import (
     CITED_CUES_WEIGHT,
     CONTRADICTION_PENALTY,
     CORROBORATION_WEIGHT,
     EVASION_PENALTY,
     MAX_CITED_CUES_BONUS,
+    UNCERTAINTY_EMBEDDING_DRIFT_PENALTY,
 )
 from src.contracts.models import AgeBandEstimate, Cue, EvidenceSummary
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -170,4 +170,57 @@ class TestBoundaryClamps:
         assert result == pytest.approx(
             0.5 * CORROBORATION_WEIGHT
             + (3 / MAX_CITED_CUES_BONUS) * CITED_CUES_WEIGHT
+        )
+
+
+# ---------------------------------------------------------------------------
+# Cap 10 — embedding drift factor: exact-zero contribution in offline mode
+# ---------------------------------------------------------------------------
+
+
+class TestEmbeddingDriftFactor:
+    """Phase 10 requirement: embedding_similarity=None must contribute exactly 0.
+
+    This is the 'offline no-op' guarantee.  When EMBEDDING_MODEL is not
+    configured, no embedding is computed, embedding_similarity stays None, and
+    the uncertainty penalty from _factor_embedding_drift must be exactly 0.0 —
+    not a small epsilon, not a default penalty.  A non-zero offline contribution
+    would silently lower confidence for all offline/deterministic-mode sessions.
+    """
+
+    def _evidence_with_sim(self, sim: float | None) -> EvidenceSummary:
+        return EvidenceSummary(
+            session_id="test",
+            cues=[],
+            corroboration_score=0.5,
+            turn_count=3,
+            embedding_similarity=sim,
+        )
+
+    def test_none_similarity_returns_exactly_zero(self) -> None:
+        """embedding_similarity=None (offline mode) → factor must be 0.0."""
+        result = _factor_embedding_drift(self._evidence_with_sim(None))
+        assert result == 0.0, (
+            "_factor_embedding_drift must return 0.0 when embedding_similarity is None. "
+            "A non-zero return would penalise every offline/deterministic session."
+        )
+
+    def test_high_similarity_above_threshold_returns_zero(self) -> None:
+        """High cosine similarity (no drift) → no penalty."""
+        result = _factor_embedding_drift(self._evidence_with_sim(0.95))
+        assert result == 0.0
+
+    def test_low_similarity_below_threshold_returns_penalty(self) -> None:
+        """Low cosine similarity (persona drift detected) → penalty applied."""
+        result = _factor_embedding_drift(self._evidence_with_sim(0.3))
+        assert result == pytest.approx(UNCERTAINTY_EMBEDDING_DRIFT_PENALTY)
+
+    def test_full_confidence_unchanged_when_sim_none(self) -> None:
+        """End-to-end: compute_confidence with embedding_similarity=None == without it."""
+        evidence_with_none = _evidence(corroboration=0.8)
+        evidence_with_none.embedding_similarity = None
+        evidence_without = _evidence(corroboration=0.8)
+        estimate = _estimate(cited_cues=["a", "b"])
+        assert compute_confidence(evidence_with_none, estimate) == compute_confidence(
+            evidence_without, estimate
         )

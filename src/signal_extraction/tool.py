@@ -4,10 +4,10 @@ from __future__ import annotations
 
 import json
 
-from agents import function_tool  # type: ignore[import-not-found]  # openai-agents SDK
+from agents import function_tool  # openai-agents SDK
 
 
-@function_tool  # type: ignore[misc]
+@function_tool
 def compute_reading_level_tool(text: str) -> str:
     """Compute reading level for text.
 

@@ -7,6 +7,8 @@ import { EvidenceList } from './components/EvidenceList'
 import { PlannerTrace } from './components/PlannerTrace'
 import { StepUpPrompt } from './components/StepUpPrompt'
 import { ChatInput } from './components/ChatInput'
+import { RosterTable } from './components/RosterTable'
+import { AmdTelemetryBadge } from './components/AmdTelemetryBadge'
 
 import clearAdult from './fixtures/clear_adult.json'
 import youngTeen from './fixtures/young_teen.json'
@@ -39,6 +41,7 @@ export function App() {
   const [error, setError] = useState<string | null>(null)
   const [demoQueue, setDemoQueue] = useState<DemoFixture>([])
   const [demoName, setDemoName] = useState<string | null>(null)
+  const [view, setView] = useState<'session' | 'roster'>('session')
 
   useEffect(() => {
     if (demoQueue.length === 0) return
@@ -80,20 +83,48 @@ export function App() {
     <div className="app">
       <header className="app-header">
         <h1>AgeBand <span className="header-sub">Live Session Monitor</span></h1>
-        <div className="demo-controls">
-          {Object.keys(DEMOS).map((name) => (
-            <button
-              key={name}
-              className={`btn btn-demo ${demoName === name ? 'btn-demo-active' : ''}`}
-              onClick={() => startDemo(name)}
-              disabled={isDemoRunning}
-            >
-              ▶ {name}
-            </button>
-          ))}
+        <div className="view-tabs">
+          <button
+            className={`btn btn-tab ${view === 'session' ? 'btn-tab-active' : ''}`}
+            onClick={() => setView('session')}
+          >
+            Session
+          </button>
+          <button
+            className={`btn btn-tab ${view === 'roster' ? 'btn-tab-active' : ''}`}
+            onClick={() => setView('roster')}
+          >
+            Roster
+          </button>
         </div>
+        {view === 'session' && (
+          <div className="demo-controls">
+            {Object.keys(DEMOS).map((name) => (
+              <button
+                key={name}
+                className={`btn btn-demo ${demoName === name ? 'btn-demo-active' : ''}`}
+                onClick={() => startDemo(name)}
+                disabled={isDemoRunning}
+              >
+                ▶ {name}
+              </button>
+            ))}
+          </div>
+        )}
       </header>
 
+      {view === 'roster' && (
+        <main className="app-main">
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <div style={{ flex: '1 1 0', minWidth: 0 }}>
+              <RosterTable />
+            </div>
+            <AmdTelemetryBadge />
+          </div>
+        </main>
+      )}
+
+      {view === 'session' && (
       <main className="app-main">
         <div className="primary-col">
           <div className="band-posture-row">
@@ -113,6 +144,7 @@ export function App() {
           <PlannerTrace trace={state.trace} />
         </aside>
       </main>
+      )}
     </div>
   )
 }

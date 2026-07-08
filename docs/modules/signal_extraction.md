@@ -82,6 +82,19 @@ Used automatically when `AGEBAND_INFERENCE_MODE=deterministic` or when `LOCAL_MO
 
 In all cases, weights are **re-stamped from the lexicon** after extraction.
 
+## Model Selection for the M2 Delegate
+
+The extractor uses `EXTRACTOR_MODEL` (via `contracts/llm_client.extractor_model()`) when making LLM calls, falling back to `LOCAL_MODEL` when that variable is unset:
+
+```
+EXTRACTOR_MODEL=google/gemma-3-4b-it   # explicit per-delegate override
+LOCAL_MODEL=google/gemma-3-4b-it       # fallback when EXTRACTOR_MODEL is empty
+```
+
+**Rationale:** the extraction task (detect cues from a single turn) is well-suited to a small, fast model — Gemma 3 4B runs at low latency and handles cue detection accurately. The larger estimator model (Gemma 3 27B, see `ageband_inference.md`) is reserved for the harder multi-turn reasoning task. Both models are served from the same `LOCAL_API_BASE` endpoint.
+
+Single-model deployments (i.e. leave `EXTRACTOR_MODEL` empty) continue to work unchanged — `complete_json()` falls back to `LOCAL_MODEL`.
+
 ---
 
 ## Reading Level (Deterministic)
@@ -123,6 +136,67 @@ class ISignalExtractor(Protocol):
 
 ---
 
+## Language Detection and Non-English Abstention (`language_detect.py`)
+
+Added in Phase 1 (multilingual eval). The extractor uses lightweight language
+detection to **abstain on non-English text** rather than injecting false cues
+from the English keyword lexicon.
+
+```python
+from src.signal_extraction.language_detect import detect_language, is_english_or_unknown
+```
+
+Detection priority (as of Phase 11 audit fix — Q2):
+1. **Unicode-block heuristic** (always runs first) — detects Arabic (0600–06FF),
+   CJK (4E00–9FFF), Hindi/Devanagari (0900–097F), Japanese (3040–30FF),
+   Russian/Cyrillic (0400–04FF), etc. Fast and reliable for non-Latin scripts.
+2. **`langdetect` library** — only invoked when text ≥ 50 characters (short text
+   misclassifies reliably). Confirmed working for en / es / fr / hi / ar / zh.
+   Installed at `langdetect>=1.0.9` (`requirements.txt`).
+3. **ASCII ratio heuristic** — high ratio → English; low ratio + no strong
+   non-Latin match → unknown. Fallback for short Latin-script text.
+
+**Minimum text length:** text shorter than `MIN_CHARS` (5) returns `""` (unknown).
+
+**Non-English abstention:** `keyword_extractor.extract_cues()` calls
+`is_english_or_unknown()` first; if it returns `False` (confident non-English),
+an empty `SignalSet` is returned with a debug log — **no English-lexicon cues are
+injected into a non-English session**. This prevents false child/teen signals from
+text in CJK, Arabic, or Devanagari scripts.
+
+**Multilingual support (confirmed):** en / es / fr / hi / ar / zh are correctly
+detected and abstained for text ≥ 50 characters. Short Latin-script text (< 50
+chars, e.g. a single Spanish phrase) falls through to the ASCII heuristic — it is
+then classified as English-or-unknown, and the extractor runs but produces zero
+*strong* cues (no `topic`/`disclosure` false positives from pure style/vocab on a
+Spanish phrase). The `eval_multilang.py` harness covers per-language accuracy in
+the LLM path.
+
+Also: the LLM path (`service.py`) prepends a `[language_hint: XX]` prefix to the
+user prompt when a non-English language is detected, instructing the model to read
+cues cross-lingually rather than treating foreign text as English.
+
+---
+
+## Maturity Scorers (`maturity.py`)
+
+Added in Phase 2. Provides **weak linguistic and interaction-style maturity signals**
+as `_SPECIAL_META` cues (subtype `maturity_high` / `maturity_low`).
+
+**Critical invariant:** maturity cues are explicitly excluded from `STRONG_CUE_TYPES`
+(`contracts.models`) and have weight 0.3 (weaker than topic/disclosure signals).
+They are **mismatch detectors**, not band establishers — they contribute to the
+uncertainty penalty (Phase 3) and the masking detector (Phase 4), but never
+directly set a band.
+
+`assert_not_strong_type()` (called from `test_maturity.py`) now imports
+`STRONG_CUE_TYPES` from `src.contracts.models` — **not** from
+`src.ageband_inference.rule_estimator`. This eliminates the M2 → M4 boundary
+crossing that previously existed and is the correct architectural dependency
+direction (both M2 and M4 depend on contracts; they do not depend on each other).
+
+---
+
 ## Tests
 
 ```
@@ -130,4 +204,6 @@ tests/unit/signal_extraction/test_reading_level.py      — FK formula, edge cas
 tests/unit/signal_extraction/test_lexicon.py             — weight assignments, band hints, subtype mapping
 tests/unit/signal_extraction/test_keyword_extractor.py  — offline extraction, cue coverage
 tests/unit/signal_extraction/test_service.py             — weight re-stamping, LLM mocked, offline path
+tests/unit/signal_extraction/test_maturity.py            — maturity scorers, _STRONG_TYPES exclusion invariant
+tests/unit/signal_extraction/test_language_detect.py     — language detection, non-English abstention
 ```

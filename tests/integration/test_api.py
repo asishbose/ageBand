@@ -23,7 +23,11 @@ def client(monkeypatch: pytest.MonkeyPatch) -> TestClient:
 
 class TestApi:
     def test_health(self, client: TestClient) -> None:
-        assert client.get("/health").json() == {"status": "ok"}
+        data = client.get("/health").json()
+        assert data["status"] == "ok"
+        # Additive telemetry block (Phase P1-D) — check shape, not exact values.
+        assert "telemetry" in data
+        assert "available" in data["telemetry"]
 
     def test_turn_returns_band_and_posture(self, client: TestClient) -> None:
         _store.clear("api-1")
@@ -55,6 +59,14 @@ class TestApi:
         assert set(state) >= {"session_id", "band", "confidence", "posture", "evidence", "trace"}
         assert state["session_id"] == "api-2"
         _store.clear("api-2")
+
+    def test_roster_sample(self, client: TestClient) -> None:
+        r = client.post("/v1/roster", json={})
+        assert r.status_code == 200
+        body = r.json()
+        assert body["user_count"] >= 1
+        row = body["rows"][0]
+        assert set(row) >= {"username", "band", "confidence", "posture", "top_cues"}
 
     def test_confirm_then_override(self, client: TestClient) -> None:
         _store.clear("api-3")

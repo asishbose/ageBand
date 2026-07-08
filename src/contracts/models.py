@@ -12,6 +12,18 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 # ---------------------------------------------------------------------------
+# Shared cue-type constants
+# ---------------------------------------------------------------------------
+
+# Cue types that are strong enough to steer the rule estimator's band lean
+# independently.  "reading_level", "style", and all _SPECIAL_META subtypes
+# (maturity_high / maturity_low) are deliberately excluded — see rule_estimator
+# docstring for the fairness rationale.  Declared here so both rule_estimator
+# (M4) and signal_extraction/maturity (M2) can import from contracts without
+# creating an M2 → M4 cross-module dependency.
+STRONG_CUE_TYPES: frozenset[str] = frozenset({"disclosure", "topic"})
+
+# ---------------------------------------------------------------------------
 # Building-block types
 # ---------------------------------------------------------------------------
 
@@ -77,6 +89,12 @@ class AgeBandEstimate(BaseModel):
     cited_cues: list[str] = Field(default_factory=list)
     evasion_flag: bool = False
     contradictions: list[str] = Field(default_factory=list)
+    # Additive fields (Phase 4) — richer masking pattern detail.
+    # evasion_patterns: which of the four masking patterns fired. Empty list
+    # when evasion_flag=False. Backward-compatible: existing callers checking
+    # only evasion_flag continue to work; the richer pattern detail is opt-in.
+    # Patterns: "mismatch", "deflection", "register_switching", "over_insistence"
+    evasion_patterns: list[str] = Field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -107,6 +125,16 @@ class EvidenceSummary(BaseModel):
     cues: list[Cue] = Field(default_factory=list)
     corroboration_score: float = Field(default=0.0, ge=0.0, le=1.0)
     turn_count: int = Field(default=0, ge=0)
+    # Additive field (Phase 3) — record of candidate band per turn for
+    # conversation-level uncertainty penalty. Existing code that doesn't
+    # populate this field defaults to an empty list (no volatility penalty).
+    # Format: list of band strings ("child"|"teen"|"adult"|"unknown"), one per turn.
+    band_history: list[str] = Field(default_factory=list)
+    # Additive field (Phase 5) — cosine similarity between the most recent
+    # turn's embedding and the session centroid. None when no embedding model
+    # is configured (offline / deterministic mode) — treated as "no penalty"
+    # by _compute_uncertainty() in confidence.py.
+    embedding_similarity: float | None = None
 
 
 # ---------------------------------------------------------------------------

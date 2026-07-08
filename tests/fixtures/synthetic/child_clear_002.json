@@ -1,0 +1,28 @@
+{
+  "band": "child",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "Recess got cancelled today bc it was raining."
+    },
+    {
+      "role": "user",
+      "text": "We played board games inside with my teacher instead."
+    },
+    {
+      "role": "user",
+      "text": "My parents are taking me to the science museum Saturday."
+    },
+    {
+      "role": "user",
+      "text": "I want to see the dinosaurs like we studied in 3rd grade."
+    },
+    {
+      "role": "user",
+      "text": "My mom already bought the tickets I am so excited."
+    }
+  ],
+  "generation_model": "template",
+  "seed": 1181241943
+}

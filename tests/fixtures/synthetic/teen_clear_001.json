@@ -1,0 +1,28 @@
+{
+  "band": "teen",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "middle school is so stressful bc of all the tests and homework"
+    },
+    {
+      "role": "user",
+      "text": "I'm in 9th grade now and high school is way harder than expected"
+    },
+    {
+      "role": "user",
+      "text": "my teacher assigned a huge project due tomorrow idk how to start"
+    },
+    {
+      "role": "user",
+      "text": "my curfew is so unfair bc my friends can stay out until 11"
+    },
+    {
+      "role": "user",
+      "text": "lol we had a sub today and nobody did any work rn"
+    }
+  ],
+  "generation_model": "template",
+  "seed": 440213415
+}

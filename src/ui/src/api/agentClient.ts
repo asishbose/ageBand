@@ -1,6 +1,17 @@
-import type { SessionState } from '../types'
+import type { SessionState, RosterRow } from '../types'
 
 const BASE = '/v1'
+
+export async function fetchRoster(exportJson?: unknown): Promise<RosterRow[]> {
+  const res = await fetch(`${BASE}/roster`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(exportJson ?? {}),
+  })
+  if (!res.ok) throw new Error(`Roster error: ${res.status}`)
+  const data = (await res.json()) as { rows: RosterRow[] }
+  return data.rows
+}
 
 interface TinyAgentResponse {
   choices: [{ message: { content: string } }]

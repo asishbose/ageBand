@@ -1,0 +1,28 @@
+{
+  "band": "teen",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "omg my math teacher gave us so much hw tonight its not fair"
+    },
+    {
+      "role": "user",
+      "text": "i'm in 8th grade and honestly finals rn are killing me"
+    },
+    {
+      "role": "user",
+      "text": "my parents won't let me go to the party bc i have to be home by 9"
+    },
+    {
+      "role": "user",
+      "text": "gonna be up all night studying for this exam tomorrow lol"
+    },
+    {
+      "role": "user",
+      "text": "my bff and i are texting about how stressed we are about school"
+    }
+  ],
+  "generation_model": "template",
+  "seed": 599310825
+}

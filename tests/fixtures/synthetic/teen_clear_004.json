@@ -1,0 +1,28 @@
+{
+  "band": "teen",
+  "difficulty": "clear",
+  "turns": [
+    {
+      "role": "user",
+      "text": "I need to finish this report card assignment for 6th grade history"
+    },
+    {
+      "role": "user",
+      "text": "school is so draining rn I just want summer to start already"
+    },
+    {
+      "role": "user",
+      "text": "my parents said I need to improve my grades or lose my phone"
+    },
+    {
+      "role": "user",
+      "text": "we have a test tomorrow and I haven't started studying yet"
+    },
+    {
+      "role": "user",
+      "text": "lol my bff and I passed notes in class and got caught"
+    }
+  ],
+  "generation_model": "template",
+  "seed": 136505587
+}

@@ -15,6 +15,7 @@ from src.contracts.protocols import ISignalExtractor
 from src.contracts.runtime import use_llm
 from src.signal_extraction import lexicon
 from src.signal_extraction.keyword_extractor import extract_cues
+from src.signal_extraction.language_detect import detect_language
 
 logger = logging.getLogger(__name__)
 
@@ -99,11 +100,16 @@ class SignalExtractorService:
         if self._mock_response is not None:
             return self._mock_response
 
-        from src.contracts.llm_client import complete_json
+        from src.contracts.llm_client import complete_json, extractor_model
 
-        raw = await complete_json(_SYSTEM_PROMPT, turn.turn_text)
-        raw_cues = raw.get("cues", []) if isinstance(raw, dict) else []
-        return {"cues": [c for c in map(self._sanitise_cue, raw_cues) if c]}
+        lang = detect_language(turn.turn_text)
+        user_content = turn.turn_text
+        if lang and lang != "en":
+            user_content = f"[language_hint: {lang}]\n{turn.turn_text}"
+        raw = await complete_json(_SYSTEM_PROMPT, user_content, model=extractor_model())
+        raw_list = raw.get("cues", []) if isinstance(raw, dict) else []
+        raw_cues: list[object] = raw_list if isinstance(raw_list, list) else []
+        return {"cues": [c for item in raw_cues if (c := self._sanitise_cue(item)) is not None]}
 
     @staticmethod
     def _sanitise_cue(cue: object) -> dict[str, object] | None:
