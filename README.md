@@ -1,5 +1,7 @@
 # AgeBand
 
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE)
+
 **Passive age-band inference for AI chat products.**
 
 AgeBand reads how a user writes and what they talk about, maintains a live estimate of their age band (child / teen / adult / unknown), and emits a `safety_posture` that the host product can act on — without AgeBand ever touching the reply path.
@@ -421,4 +423,6 @@ full two-model design rationale, CLI reference, and how to read the output.
 
 ## License
 
-Apache 2.0 — see `LICENSE`.
+Apache License 2.0 — see [`LICENSE`](LICENSE) for the full text.
+
+Copyright 2026 Asish Bose.
