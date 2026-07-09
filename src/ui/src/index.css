@@ -23,6 +23,126 @@
   --blocked-bg: #fee2e2; --blocked-fg: #991b1b;
 }
 
+/* ── Dark theme ─────────────────────────────────────────────────────────────
+   Activated only when App.tsx detects ?theme=dark and sets
+   data-theme="dark" on <html>.  The :root block above is NEVER modified —
+   every dark override lives here.  Plain `npm run dev` / Docker / Helm never
+   sets this attribute and therefore never shows dark styling.
+   ────────────────────────────────────────────────────────────────────────── */
+[data-theme="dark"] {
+  /* Instrument-panel graphite-navy — three surface tonal steps */
+  --bg:      #12151a;
+  --surface: #1c2030;
+  --border:  #2d3352;
+  --text:    #e8eaf0;
+  --muted:   #8892a8;
+  --shadow:  0 1px 4px rgba(0,0,0,.4), 0 4px 20px rgba(0,0,0,.3);
+
+  /* Accent — muted teal: signal/sonar readout, not neon */
+  --accent:     #2dd4bf;
+  --accent-dim: #0f7068;
+
+  /* Monospace data face for instrument readouts */
+  --mono-font: 'JetBrains Mono', 'Fira Mono', 'Cascadia Code', monospace;
+
+  /* Code block (perf-cmd) */
+  --code-bg: #0d1117;
+  --code-fg: #7dd3fc;
+
+  /* Surface hover — second elevation step for row-hover etc. */
+  --surface-hover: #232840;
+
+  /* Band badges — warm/cool hue families, distinct from posture */
+  --child-bg:   #3d1515; --child-fg:   #fca5a5;
+  --teen-bg:    #3d2210; --teen-fg:    #fdba74;
+  --adult-bg:   #0f2d1a; --adult-fg:   #86efac;
+  --unknown-bg: #1e2333; --unknown-fg: #94a3b8;
+
+  /* Posture badges — teal/amber/orange/red ladder (distinct from band greens) */
+  --standard-bg:   #0d2a28; --standard-fg:   #2dd4bf;
+  --caution-bg:    #2d2006; --caution-fg:    #fcd34d;
+  --restricted-bg: #2d1200; --restricted-fg: #fb923c;
+  --blocked-bg:    #2d0808; --blocked-fg:    #f87171;
+}
+
+/* Progress fills — teal accent in dark mode */
+[data-theme="dark"] .progress-fill { background: var(--accent); }
+/* Evidence mini-bars — calm muted blue (distinct from accent) */
+[data-theme="dark"] .mini-bar-fill { background: #60a5fa; }
+
+/* Trace elements */
+[data-theme="dark"] .trace-step   { background: #162032; color: var(--accent); }
+[data-theme="dark"] .trace-action { color: #a78bfa; }
+
+/* Step-up warning card */
+[data-theme="dark"] .stepup-card    { border-color: #78350f; background: #1c1208; }
+[data-theme="dark"] .stepup-title   { color: #fbbf24; }
+[data-theme="dark"] .stepup-message { color: #fde68a; }
+
+/* Cue-type chip */
+[data-theme="dark"] .cue-type { color: var(--accent); background: #0d2a28; border-color: var(--accent-dim); }
+
+/* Error banner */
+[data-theme="dark"] .error-banner { background: #2d0808; color: #f87171; }
+
+/* ── View tabs — absorb orphaned hardcoded grays into token system ── */
+[data-theme="dark"] .btn-tab {
+  background: var(--surface);
+  color: var(--muted);
+  border-color: var(--border);
+}
+[data-theme="dark"] .btn-tab-active {
+  background: var(--accent);
+  color: #0d2a28;    /* dark text on teal for readable contrast */
+  border-color: var(--accent);
+}
+
+/* ── Roster table — absorb orphaned hardcoded grays ── */
+[data-theme="dark"] .roster-table th,
+[data-theme="dark"] .roster-table td  { border-bottom-color: var(--border); }
+[data-theme="dark"] .roster-table th  { color: var(--muted); }
+[data-theme="dark"] .roster-table tr:hover td { background: var(--surface-hover); }
+[data-theme="dark"] .conf-bar  { background: var(--border); }
+[data-theme="dark"] .conf-fill { background: var(--accent); }
+[data-theme="dark"] .conf-num  { color: var(--text); }
+[data-theme="dark"] .cues-cell { color: var(--muted); }
+[data-theme="dark"] .roster-hint { color: var(--muted); }
+
+/* ── Performance panel — perf-cmd code block ── */
+[data-theme="dark"] .perf-cmd { background: var(--code-bg); color: var(--code-fg); }
+
+/* ── Transcript rows ── */
+[data-theme="dark"] .transcript-row { background: var(--surface); }
+
+/* ── Monospace data face for instrument readouts ── */
+[data-theme="dark"] .transcript-conf,
+[data-theme="dark"] .conf-num,
+[data-theme="dark"] .perf-cmd       { font-family: var(--mono-font); }
+
+/* ── Posture ladder ─────────────────────────────────────────────── */
+.posture-ladder {
+  display: flex;
+  gap: 4px;
+  margin-top: 10px;
+}
+.posture-rung {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  opacity: 0.2;
+  transition: opacity .3s ease, background-color .3s ease;
+}
+.posture-rung-active { opacity: 1; }
+.posture-rung-standard   { background: var(--standard-fg); }
+.posture-rung-caution    { background: var(--caution-fg); }
+.posture-rung-restricted { background: var(--restricted-fg); }
+.posture-rung-blocked    { background: var(--blocked-fg); }
+
+/* Respect reduced-motion: disable rung transitions when requested */
+@media (prefers-reduced-motion: reduce) {
+  .posture-rung { transition: none; }
+}
+
 html, body { height: 100%; }
 
 body {

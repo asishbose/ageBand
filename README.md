@@ -190,6 +190,23 @@ no separate terminals needed.
 
 **Default config is deterministic mode** — runs with no GPU and no model endpoint. The configuration cell shows how to switch to LLM mode with `VLLM_HOST`/`LOCAL_MODEL`/`EXTRACTOR_MODEL`/`ESTIMATOR_MODEL`.
 
+**vLLM auto-start (step 3.5):** in LLM mode the notebook checks whether a vLLM endpoint is already running at `LOCAL_API_BASE`.  If not, and if the target host is the local machine, it auto-starts vLLM — using the Docker ROCm container on AMD GPU machines, or printing a clear warning + choice on CPU-only VMs.  See [`docs/droplet_demo_setup.md`](docs/droplet_demo_setup.md) for the complete droplet walkthrough.
+
+### Running on a fresh DigitalOcean droplet
+
+For the end-to-end "one script + open notebook = live demo" flow, see
+**[`docs/droplet_demo_setup.md`](docs/droplet_demo_setup.md)**.  The short version:
+
+```bash
+# On the droplet (one time):
+git clone --depth 1 https://github.com/asishbose/ageBand.git ~/ageBand
+~/ageBand/scripts/setup_droplet_jupyter.sh
+# → prints http://<droplet-ip>:8888/?token=...
+```
+
+Then open the printed URL → open `notebooks/AgeBand_Demo.ipynb` → **Run All**.
+vLLM, the agent, and the UI all start automatically.
+
 ---
 
 ## API reference
