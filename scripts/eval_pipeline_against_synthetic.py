@@ -53,6 +53,7 @@ import asyncio
 from collections import defaultdict
 from datetime import datetime, timezone
 from pathlib import Path
+from collections.abc import Callable
 from typing import Any
 
 _REPO_ROOT = Path(__file__).parent.parent
@@ -101,9 +102,9 @@ def _configure_eval_env() -> tuple[str, str]:
     return eval_model, "llm"
 
 
-# Configure BEFORE pipeline imports so the service picks up the right values.
-_EVAL_MODEL, _INFERENCE_MODE = _configure_eval_env()
-
+# NOTE: env is configured inside main()/run_eval (via _configure_eval_env), NOT
+# at import time — importing this module must be side-effect-free so the API
+# process can reuse evaluate_fixtures() without _configure_eval_env's sys.exit.
 from src.audit_fairness.service import AuditFairnessService  # noqa: E402
 from src.contracts.models import TurnEvent  # noqa: E402
 from src.orchestration.runner import OrchestrationService  # noqa: E402
@@ -373,18 +374,32 @@ def print_report(
 # Main
 # ---------------------------------------------------------------------------
 
-async def run_eval(
-    fixture_dir: Path,
-    band_filter: list[str] | None,
-    difficulty_filter: list[str] | None,
-) -> None:
-    service = OrchestrationService()
-    audit = AuditFairnessService()
+async def evaluate_fixtures(
+    service: OrchestrationService,
+    audit: AuditFairnessService,
+    band_filter: list[str] | None = None,
+    difficulty_filter: list[str] | None = None,
+    fixture_dir: Path = _FIXTURE_DIR,
+    eval_model: str | None = None,
+    progress: "Callable[[Path, dict[str, Any]], None] | None" = None,
+) -> dict[str, Any]:
+    """Replay the synthetic fixtures via *service* and return the report dict.
+
+    Side-effect-free w.r.t. process control: no sys.exit, no printing, no disk
+    write — so it is safe to call from a long-running API process (``/v1/eval``)
+    as well as the CLI. Raises RuntimeError when no fixtures are found/matched or
+    all fail; the caller decides how to surface that. ``progress`` is an optional
+    per-fixture callback (used by the CLI to stream ✓/✗ lines).
+    """
+    from src.contracts.runtime import use_llm
+
+    model = eval_model or os.environ.get("LOCAL_MODEL") or os.environ.get("EVAL_MODEL", "")
+    mode = "llm" if use_llm() else "deterministic"
 
     all_files = sorted(fixture_dir.glob("*.json"))
     if not all_files:
-        sys.exit(
-            f"No fixtures found in {fixture_dir}.\n"
+        raise RuntimeError(
+            f"No fixtures found in {fixture_dir}. "
             "Run  python scripts/generate_synthetic_chats.py  first."
         )
 
@@ -398,50 +413,65 @@ async def run_eval(
         filtered.append((fp, data))
 
     if not filtered:
-        sys.exit("No fixtures matched the requested band / difficulty filters.")
-
-    print(
-        f"\nEvaluating {len(filtered)} fixture(s)  "
-        f"[EVAL_MODEL={_EVAL_MODEL!r}  mode={_INFERENCE_MODE}] …\n"
-    )
+        raise RuntimeError("No fixtures matched the requested band / difficulty filters.")
 
     results: list[dict[str, Any]] = []
     for fp, fixture in filtered:
-        print(f"  {fp.name:<45} ", end="", flush=True)
-        try:
-            result = await replay_fixture(fixture, service, audit)
-            tick = "✓" if result["correct"] else "✗"
-            ev = " [evasion]" if result["evasion_flag_raised"] else ""
-            print(
-                f"{tick}  gt={result['ground_truth']:<6} "
-                f"pred={result['predicted']:<8} "
-                f"conf={result['confidence']:.2f}{ev}"
-            )
-            results.append(result)
-        except Exception as exc:
-            print(f"ERROR: {exc}", file=sys.stderr)
+        result = await replay_fixture(fixture, service, audit)
+        results.append(result)
+        if progress is not None:
+            progress(fp, result)
 
     if not results:
-        sys.exit("All fixtures failed to evaluate.")
+        raise RuntimeError("All fixtures failed to evaluate.")
 
-    metrics = compute_metrics(results)
+    return {
+        "eval_model": model,
+        "inference_mode": mode,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "settle_confidence_threshold": SETTLE_CONFIDENCE,
+        "metrics": compute_metrics(results),
+        "per_sample": results,
+    }
+
+
+async def run_eval(
+    fixture_dir: Path,
+    band_filter: list[str] | None,
+    difficulty_filter: list[str] | None,
+) -> None:
+    eval_model, inference_mode = _configure_eval_env()
+    service = OrchestrationService()
+    audit = AuditFairnessService()
+
+    print(
+        f"\nEvaluating fixtures  "
+        f"[EVAL_MODEL={eval_model!r}  mode={inference_mode}] …\n"
+    )
+
+    def _progress(fp: Path, result: dict[str, Any]) -> None:
+        tick = "✓" if result["correct"] else "✗"
+        ev = " [evasion]" if result["evasion_flag_raised"] else ""
+        print(
+            f"  {fp.name:<45} {tick}  gt={result['ground_truth']:<6} "
+            f"pred={result['predicted']:<8} conf={result['confidence']:.2f}{ev}"
+        )
+
+    try:
+        report = await evaluate_fixtures(
+            service, audit, band_filter, difficulty_filter,
+            fixture_dir=fixture_dir, eval_model=eval_model, progress=_progress,
+        )
+    except RuntimeError as exc:
+        sys.exit(str(exc))
 
     # Write timestamped report.
     _RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     ts = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     report_path = _RESULTS_DIR / f"{ts}.json"
-
-    report: dict[str, Any] = {
-        "eval_model": _EVAL_MODEL,
-        "inference_mode": _INFERENCE_MODE,
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "settle_confidence_threshold": SETTLE_CONFIDENCE,
-        "metrics": metrics,
-        "per_sample": results,
-    }
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False))
 
-    print_report(metrics, _EVAL_MODEL, _INFERENCE_MODE, report_path)
+    print_report(report["metrics"], eval_model, inference_mode, report_path)
 
 
 def _parse_args() -> argparse.Namespace:

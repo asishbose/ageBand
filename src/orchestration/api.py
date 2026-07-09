@@ -77,6 +77,21 @@ class ChatCompletionRequest(BaseModel):
     stream: bool = False
 
 
+class EvalRequest(BaseModel):
+    """Optional filters for the /v1/eval accuracy run (defaults = all 15 fixtures)."""
+
+    band: list[str] | None = None
+    difficulty: list[str] | None = None
+
+
+class BenchmarkRequest(BaseModel):
+    """Parameters for the /v1/benchmark per-turn latency + throughput sweep."""
+
+    concurrency: list[int] = [1, 5, 10]
+    samples: int = 20
+    gpu_hourly_cost: float = 1.99
+
+
 @app.get("/health")
 async def health() -> dict[str, object]:
     """Liveness check. Includes AMD telemetry when running on a GPU endpoint.
@@ -174,7 +189,159 @@ async def roster(export: dict[str, Any] | None = Body(default=None)) -> dict[str
     return {"rows": rows, "user_count": len(rows)}
 
 
+# Sample turns for the throughput benchmark — a mix of child/teen/adult signals
+# so each turn exercises the full extract → estimate → policy pipeline.
+_BENCH_TURNS = [
+    "I just refinanced my mortgage and reviewed the Q3 earnings report.",
+    "omg the homework tonight is so much, my teacher is being unfair",
+    "we had recess today and i lost a tooth, it was so cool!",
+    "The quarterly strategy review ran long at the office again.",
+    "my mom said i have to finish my chores before i can play the game",
+]
+
+
+@app.post("/v1/eval")
+async def run_eval_endpoint(
+    req: EvalRequest | None = Body(default=None),  # noqa: B008
+) -> dict[str, Any]:
+    """Run the synthetic accuracy eval (15 bundled fixtures) in-process.
+
+    Reuses ``evaluate_fixtures`` from the eval script against the shared service.
+    Returns accuracy, settled rate, confusion matrix, and per-band metrics.
+    """
+    assert _service is not None, "Service not initialised"
+    from scripts.eval_pipeline_against_synthetic import evaluate_fixtures
+    from src.audit_fairness.service import AuditFairnessService
+
+    band = req.band if req else None
+    difficulty = req.difficulty if req else None
+    report = await evaluate_fixtures(
+        _service,
+        AuditFairnessService(),
+        band_filter=band,
+        difficulty_filter=difficulty,
+    )
+    return {
+        "eval_model": report["eval_model"],
+        "inference_mode": report["inference_mode"],
+        "settle_confidence_threshold": report["settle_confidence_threshold"],
+        "metrics": report["metrics"],
+        "per_sample": report["per_sample"],
+    }
+
+
+@app.post("/v1/benchmark")
+async def run_benchmark_endpoint(
+    req: BenchmarkRequest | None = Body(default=None),  # noqa: B008
+) -> dict[str, Any]:
+    """Per-turn latency + throughput sweep driven in-process (fast; not the
+    roster benchmark, which times out replaying whole exports).
+
+    For each concurrency level, fires ``samples`` turns through the pipeline via
+    asyncio.gather, records p50/p95 latency + success, and derives tok/s from the
+    vLLM ``/metrics`` generation-token delta over the sweep and $/1k turns.
+    """
+    import asyncio
+    import statistics
+    import time
+
+    from scripts.benchmark_roster import _cost_per_1k_turns
+    from src.contracts.models import TurnEvent
+    from src.orchestration.amd_check import _scrape_vllm_metrics
+
+    assert _service is not None, "Service not initialised"
+    cfg = req or BenchmarkRequest()
+    base_url = os.environ.get("LOCAL_API_BASE", "http://localhost:8000/v1")
+
+    async def _one(i: int) -> tuple[float, bool]:
+        t0 = time.perf_counter()
+        try:
+            await _service.run_turn_verbose(
+                TurnEvent(
+                    session_id=f"bench-{i}",
+                    turn_text=_BENCH_TURNS[i % len(_BENCH_TURNS)],
+                    turn_number=1,
+                )
+            )
+            return (time.perf_counter() - t0) * 1000.0, True
+        except Exception:  # noqa: BLE001 — count as failure, keep sweeping
+            return (time.perf_counter() - t0) * 1000.0, False
+
+    rows: list[dict[str, Any]] = []
+    idx = 0
+    for c in cfg.concurrency:
+        conc = max(1, c)
+        metrics_before = _scrape_vllm_metrics(base_url)
+        t_start = time.perf_counter()
+        latencies: list[float] = []
+        successes = 0
+        remaining = max(1, cfg.samples)
+        while remaining > 0:
+            batch = min(conc, remaining)
+            res = await asyncio.gather(*[_one(idx + j) for j in range(batch)])
+            idx += batch
+            latencies += [r[0] for r in res]
+            successes += sum(1 for r in res if r[1])
+            remaining -= batch
+        elapsed = time.perf_counter() - t_start
+        metrics_after = _scrape_vllm_metrics(base_url)
+
+        p50 = statistics.median(latencies) if latencies else 0.0
+        if len(latencies) >= 2:
+            p95 = statistics.quantiles(latencies, n=20)[18]
+        else:
+            p95 = latencies[0] if latencies else 0.0
+        d_gen = float(metrics_after.get("gen_tokens_total", 0.0)) - float(
+            metrics_before.get("gen_tokens_total", 0.0)
+        )
+        tok_s = d_gen / elapsed if elapsed > 0 and d_gen > 0 else 0.0
+        cost = _cost_per_1k_turns(cfg.gpu_hourly_cost, tok_s)
+        rows.append({
+            "concurrency": c,
+            "p50_ms": round(p50, 1),
+            "p95_ms": round(p95, 1),
+            "success": successes,
+            "total": len(latencies),
+            "tok_per_sec": round(tok_s, 1),
+            "cost_per_1k_turns": round(cost, 4) if cost is not None else None,
+        })
+
+    best = max(rows, key=lambda r: r["tok_per_sec"]) if rows else {}
+    return {
+        "rows": rows,
+        "headline": {
+            "sessions_per_gpu": best.get("concurrency"),
+            "p95_ms": best.get("p95_ms"),
+            "tok_per_sec": best.get("tok_per_sec"),
+            "cost_per_1k_turns": best.get("cost_per_1k_turns"),
+        },
+        "gpu_hourly_cost": cfg.gpu_hourly_cost,
+    }
+
+
 @app.exception_handler(Exception)
 async def _global_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("Unhandled error: %s", exc, exc_info=True)
     return JSONResponse(status_code=500, content={"error": "internal_server_error"})
+
+
+# ---------------------------------------------------------------------------
+# Optional: serve the built UI from this same process (single-origin, single
+# port). Enabled by AGEBAND_SERVE_UI=1 when src/ui/dist exists — lets a single
+# `uvicorn` on one public port serve both the API and the UI, so the UI's
+# root-relative /v1 and /health calls resolve without CORS or a reverse proxy.
+# The Helm/nginx deploy path leaves this off (nginx serves the UI separately),
+# and this mount is added LAST so the explicit API routes above take precedence.
+# ---------------------------------------------------------------------------
+if os.environ.get("AGEBAND_SERVE_UI", "").lower() in ("1", "true", "yes"):
+    _UI_DIST = Path(__file__).resolve().parent.parent / "ui" / "dist"
+    if _UI_DIST.is_dir():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(_UI_DIST), html=True), name="ui")
+        logger.info("Serving UI from %s at /", _UI_DIST)
+    else:
+        logger.warning(
+            "AGEBAND_SERVE_UI set but %s missing — run `npm run build` in src/ui",
+            _UI_DIST,
+        )

@@ -8,51 +8,78 @@
 
 ## Headline numbers — Slide 9
 
-> **These four numbers require an AMD Dev Cloud MI300X run.**  
-> Until that run completes, they are marked PENDING.  
-> Local dry-run results (offline/deterministic path) are provided separately  
-> in the "Dry run" section below and must NOT be presented as AMD numbers.
+> **Measured on a real AMD Instinct MI300X (AMD Dev Cloud), 2026-07-09.**  
+> Model: `google/gemma-3-27b-it` bf16 (single-model: same model for extractor +
+> estimator). Runtime: vLLM 0.23.0, ROCm 7.2.4, gfx942, 192 GB. Agent + eval
+> pipeline confirmed on the **LLM path** (100% synthetic accuracy, real bands,
+> no `unknown`/fallback).
 
 | Metric | Value | Notes |
 |---|---|---|
-| Sessions/GPU | **PENDING** | Max concurrent `/v1/roster` sessions before p95 latency > 5s |
-| p95 gate→posture latency | **PENDING ms** | Includes gate + extract + estimate + policy + emit |
-| Sustained tok/s | **PENDING** | From vLLM `/metrics` `generation_tokens_total` |
-| $/1k moderated turns | **PENDING** | At AMD Dev Cloud MI300X pricing (see script `--gpu-hourly-cost` flag) |
+| Sessions/GPU | **≥10** | Per-turn p95 still 3.1 s at 10 concurrent (5 s ceiling not reached — headroom remains) |
+| p95 gate→posture latency | **3,074 ms** @ 10 concurrent (**2,061 ms** single-session) | Full `/v1/turn`: gate + extract + estimate + policy + emit |
+| Sustained tok/s | **598.6** @ concurrency 10 | vLLM `/metrics` `generation_tokens_total` delta (55.1 → 248.1 → 598.6 across c=1/5/10) |
+| $/1k moderated turns | **$0.139** @ concurrency 10 | At $1.99/hr MI300X droplet ($1.51 → $0.334 → $0.139 across c=1/5/10) |
 
-**Run command for real hardware:**
+**Reproduce (exact command used on the droplet):**
 ```bash
-LOCAL_API_BASE=http://vllm-service:8000/v1 \
-LOCAL_MODEL=google/gemma-3-27b-it \
-EXTRACTOR_MODEL=google/gemma-3-4b-it \
-ESTIMATOR_MODEL=google/gemma-3-27b-it \
-AGEBAND_AGENT_URL=http://ageband-service:8080 \
-  python scripts/benchmark_roster.py \
-    --concurrency 1 5 10 25 50 \
-    --samples 200 \
-    --gpu-hourly-cost 3.50
+# vLLM served in the ROCm container (port 8001; 8000 held by JupyterLab):
+docker run -it --rm --network=host --device=/dev/kfd --device=/dev/dri \
+  --group-add video --ipc=host --shm-size 16G \
+  -e HF_TOKEN=$HF_TOKEN -e VLLM_HOST_IP=127.0.0.1 -e GLOO_SOCKET_IFNAME=lo \
+  -v ~/.cache/huggingface:/root/.cache/huggingface \
+  vllm/vllm-openai-rocm:v0.23.0 \
+  google/gemma-3-27b-it --host 0.0.0.0 --port 8001
+
+# Agent + throughput sweep (single-model config):
+LOCAL_API_BASE=http://localhost:8001/v1 LOCAL_MODEL=google/gemma-3-27b-it \
+EXTRACTOR_MODEL=google/gemma-3-27b-it ESTIMATOR_MODEL=google/gemma-3-27b-it \
+AGEBAND_INFERENCE_MODE=llm AGEBAND_NO_RESPONSE_FORMAT=1 \
+  python scripts/benchmark_roster.py --concurrency 1 5 10 --samples 50 --gpu-hourly-cost 1.99
 ```
 
-Replace `--gpu-hourly-cost 3.50` with the actual AMD Dev Cloud instance price at run time.
+**Headroom / next runs:**
+- **Dual-model** (Gemma 3 4B extractor + 27B estimator on one card) should cut
+  extractor latency and raise sessions/GPU — not yet measured; the 192 GB card
+  fits both.
+- Sessions/GPU is a **lower bound** — p95 never crossed 5 s through c=10, so the
+  real ceiling is higher; sweep `--concurrency 25 50` to find it.
+
+### Latency detail — per-turn `/v1/turn` (single-model 27B)
+
+| Concurrency | p50 (ms) | p95 (ms) | Success |
+|---|---|---|---|
+| 1  | 1,780 | 2,061 | 30/30 |
+| 5  | 2,601 | 2,712 | 30/30 |
+| 10 | 2,716 | 3,074 | 30/30 |
+
+> ⚠️ The `/v1/roster` sweep (whole-export replay) times out at 120 s because a
+> single call replays all authors **sequentially** (~170 turns for 50 authors) —
+> its throughput (tok/s, $/1k) counters are valid (read from vLLM `/metrics`), but
+> its per-call latency and success columns are **not** the gate→posture metric.
+> The per-turn latency above is the correct slide-9 latency figure.
 
 ---
 
-## Dry run — 2026-07-07 (local/offline, NOT AMD numbers)
+## Accuracy on the same MI300X run — 2026-07-09
 
-**Config:** `AGEBAND_INFERENCE_MODE=deterministic` (no GPU; keyword extractor + rule estimator)  
-**Purpose:** confirm the script is buildable and the sweep logic is correct.  
-**Labels:** these results are from a local CPU-only run and are clearly NOT representative  
-of MI300X throughput. They will be replaced entirely when real hardware is available.
+`scripts/eval_pipeline_against_synthetic.py` (15 fixtures, `EVAL_MODEL=google/gemma-3-27b-it`, `mode=llm`):
 
-```
-# Command run:
-AGEBAND_INFERENCE_MODE=deterministic \
-  python scripts/benchmark_roster.py --concurrency 1 5 \
-    --samples 20 --gpu-hourly-cost 0.0
-```
+- **Accuracy: 100.0%** (15/15), **settled rate 100.0%** at 0.6 threshold.
+- Confusion matrix is clean diagonal (5 child, 5 teen, 5 adult; 0 `unknown`).
+- Per-band precision/recall/F1 = 1.000 (macro avg 1.000).
 
-*(Actual dry-run output to be captured when the agent service is running locally.  
-The script itself has been validated to execute end-to-end — see Phase 03 build log.)*
+Adversarial cross-turn demo (child claiming adult) held the protective posture:
+turn 1–2 `adult` at low confidence (0.12 → 0.32, not fooled), turn 3 flips to
+`teen` / `caution` / `evasion_flag=True` on the "homework/curfew" tell.
+
+---
+
+## Dry run — 2026-07-07 (SUPERSEDED by the real MI300X run above)
+
+Historical: an offline/deterministic dry-run placeholder used before hardware was
+available. Kept for provenance only — the headline numbers now come from the real
+MI300X run dated 2026-07-09.
 
 ---
 

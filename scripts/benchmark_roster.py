@@ -191,7 +191,14 @@ async def _concurrency_sweep(
 
     latencies = [r[0] for r in results]
     successes = sum(1 for r in results if r[1])
-    p95 = statistics.quantiles(latencies, n=20)[18] if latencies else 0.0
+    # statistics.quantiles needs >=2 points; fall back to the single sample
+    # (or 0.0 when empty) so a concurrency=1 sweep doesn't crash.
+    if len(latencies) >= 2:
+        p95 = statistics.quantiles(latencies, n=20)[18]
+    elif latencies:
+        p95 = latencies[0]
+    else:
+        p95 = 0.0
 
     # Token throughput: delta gen_tokens / sweep_elapsed
     delta_gen = (

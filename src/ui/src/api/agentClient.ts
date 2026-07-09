@@ -1,4 +1,9 @@
-import type { SessionState, RosterRow } from '../types'
+import type {
+  SessionState,
+  RosterRow,
+  EvalResult,
+  BenchmarkResult,
+} from '../types'
 
 const BASE = '/v1'
 
@@ -11,6 +16,32 @@ export async function fetchRoster(exportJson?: unknown): Promise<RosterRow[]> {
   if (!res.ok) throw new Error(`Roster error: ${res.status}`)
   const data = (await res.json()) as { rows: RosterRow[] }
   return data.rows
+}
+
+// Runs the 15-fixture synthetic accuracy eval in-process on the agent.
+export async function runEval(): Promise<EvalResult> {
+  const res = await fetch(`${BASE}/eval`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({}),
+  })
+  if (!res.ok) throw new Error(`Eval error: ${res.status}`)
+  return (await res.json()) as EvalResult
+}
+
+// Runs a per-turn latency + throughput sweep on the agent.
+export async function runBenchmark(params?: {
+  concurrency?: number[]
+  samples?: number
+  gpu_hourly_cost?: number
+}): Promise<BenchmarkResult> {
+  const res = await fetch(`${BASE}/benchmark`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(params ?? {}),
+  })
+  if (!res.ok) throw new Error(`Benchmark error: ${res.status}`)
+  return (await res.json()) as BenchmarkResult
 }
 
 interface TinyAgentResponse {
