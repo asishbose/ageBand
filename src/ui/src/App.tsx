@@ -34,8 +34,24 @@ const INITIAL_STATE: SessionState = {
   step_up: null,
 }
 
+// crypto.randomUUID() only exists in a secure context (HTTPS or localhost).
+// Served over plain HTTP to a public IP (e.g. an AMD GPU box) it is undefined
+// and would throw on render, blanking the page. Fall back to a Math.random
+// v4 UUID in that case.
+function genId(): string {
+  const c = globalThis.crypto as Crypto | undefined
+  if (c && typeof c.randomUUID === 'function') {
+    return c.randomUUID()
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
+    const r = (Math.random() * 16) | 0
+    const v = ch === 'x' ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
+}
+
 export function App() {
-  const sessionId = useRef(crypto.randomUUID())
+  const sessionId = useRef(genId())
   const [state, setState] = useState<SessionState>({ ...INITIAL_STATE, session_id: sessionId.current })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -71,7 +87,7 @@ export function App() {
   }
 
   function startDemo(name: string) {
-    sessionId.current = crypto.randomUUID()
+    sessionId.current = genId()
     setState({ ...INITIAL_STATE, session_id: sessionId.current })
     setDemoName(name)
     setDemoQueue([...DEMOS[name]])
