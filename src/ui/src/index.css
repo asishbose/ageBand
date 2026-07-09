@@ -284,3 +284,22 @@ body {
 .flag { display: inline-block; margin-right: 4px; padding: 1px 7px; border-radius: 8px; font-size: 0.7rem; font-weight: 600; }
 .flag-stepup { background: #7c3aed; color: #fff; }
 .flag-evasion { background: #b91c1c; color: #fff; }
+
+/* ── Performance tab ───────────────────────────────────────── */
+.perf { display: flex; flex-direction: column; gap: 16px; padding: 8px 4px; }
+.perf-header-row { display: flex; gap: 16px; align-items: flex-start; flex-wrap: wrap; }
+.perf-stat-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 10px; }
+.perf-stat { flex: 1 1 140px; min-width: 130px; padding: 12px 14px; text-align: center; }
+.perf-stat-value { font-size: 1.5rem; font-weight: 700; color: var(--text); }
+.perf-stat-label { font-size: .8rem; font-weight: 600; color: var(--text); margin-top: 2px; }
+.perf-test { display: flex; flex-direction: column; gap: 10px; }
+.perf-cmd { display: block; background: #0f172a; color: #93c5fd; padding: 8px 12px; border-radius: 6px; font-family: monospace; font-size: .8rem; overflow-x: auto; }
+.perf-results { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.perf-results h3 { margin-top: 6px; }
+
+/* ── Chat transcript (Session simulator) ───────────────────── */
+.transcript { display: flex; flex-direction: column; gap: 6px; max-height: 320px; overflow-y: auto; margin-top: 8px; }
+.transcript-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 8px; border-radius: 6px; background: var(--bg); }
+.transcript-msg { flex: 1 1 0; min-width: 0; font-size: .85rem; color: var(--text); }
+.transcript-meta { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.transcript-conf { font-size: .75rem; color: var(--muted); font-family: monospace; }

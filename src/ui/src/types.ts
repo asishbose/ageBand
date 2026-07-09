@@ -52,3 +52,48 @@ export interface RosterRow {
   step_up: boolean
   evasion: boolean
 }
+
+// ── Performance tab: accuracy eval (/v1/eval) ────────────────────
+export interface BandMetric {
+  precision: number
+  recall: number
+  f1: number
+}
+
+export interface EvalMetrics {
+  overall_accuracy: number
+  settled_rate: number
+  total_samples: number
+  confusion_matrix: Record<string, Record<string, number>>
+  per_band: Record<string, BandMetric>
+  by_difficulty: Record<string, Record<string, number>>
+}
+
+export interface EvalResult {
+  eval_model: string
+  inference_mode: string
+  settle_confidence_threshold: number
+  metrics: EvalMetrics
+}
+
+// ── Performance tab: throughput/latency benchmark (/v1/benchmark) ──
+export interface BenchmarkRow {
+  concurrency: number
+  p50_ms: number
+  p95_ms: number
+  success: number
+  total: number
+  tok_per_sec: number
+  cost_per_1k_turns: number | null
+}
+
+export interface BenchmarkResult {
+  rows: BenchmarkRow[]
+  headline: {
+    sessions_per_gpu: number | null
+    p95_ms: number | null
+    tok_per_sec: number | null
+    cost_per_1k_turns: number | null
+  }
+  gpu_hourly_cost: number
+}

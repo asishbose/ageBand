@@ -8,10 +8,41 @@ the UI telemetry badge.
 
 from __future__ import annotations
 
+import json
 import os
 import subprocess
+import time
 
 import httpx
+
+# Cache of the last (monotonic_time, generation_tokens_total) sample so
+# collect_amd_telemetry() can report a real tok/s RATE (delta / elapsed) across
+# successive /health polls, instead of the raw cumulative counter.
+_LAST_TOK_SAMPLE: tuple[float, float] | None = None
+
+
+def _tok_per_sec(gen_total: object) -> object:
+    """Return a rolling tok/s rate from the cumulative gen-tokens counter.
+
+    Uses the module-level ``_LAST_TOK_SAMPLE`` to diff against the previous poll.
+    Returns 0.0 on the first sample (nothing to diff yet) or "N/A" when the
+    counter is unavailable / non-increasing.
+    """
+    global _LAST_TOK_SAMPLE
+    try:
+        total = float(gen_total)  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return "N/A"
+    now = time.monotonic()
+    prev = _LAST_TOK_SAMPLE
+    _LAST_TOK_SAMPLE = (now, total)
+    if prev is None:
+        return 0.0
+    dt = now - prev[0]
+    if dt <= 0:
+        return 0.0
+    rate = (total - prev[1]) / dt
+    return round(rate, 1) if rate > 0 else 0.0
 
 
 def verify_amd_endpoint(
@@ -94,39 +125,98 @@ def _scrape_vllm_metrics(base_url: str, timeout: float = 3.0) -> dict[str, objec
         return {}
 
 
+def _bytes_to_mb(val: object) -> object:
+    """Convert a byte count (int or numeric string) to whole MB; pass through on failure."""
+    try:
+        return int(int(str(val)) / (1024 * 1024))
+    except (TypeError, ValueError):
+        return val
+
+
+def _parse_rocm_smi(stdout: str) -> dict[str, object]:
+    """Parse `rocm-smi --showproductname --showmeminfo vram --json` output.
+
+    rocm-smi JSON is `{"card0": {<free-form keys>}, ...}` and key names vary by
+    ROCm version, so match tolerantly. VRAM values are bytes → convert to MB.
+    """
+    data = json.loads(stdout)
+    cards = [v for k, v in data.items() if isinstance(v, dict) and k.lower().startswith("card")]
+    if not cards:
+        return {}
+    card = cards[0]
+    lower = {k.lower(): v for k, v in card.items()}
+
+    def find(*needles: str) -> object | None:
+        for key, val in lower.items():
+            if all(n in key for n in needles):
+                return val
+        return None
+
+    gpu_model = (
+        find("series")
+        or find("market", "name")
+        or find("product", "name")
+        or find("device", "name")
+        or find("model")
+    )
+    vram_total = find("vram", "total", "memory")
+    vram_used = find("vram", "total", "used")
+    # "used" also matches "total memory" via the total-used key; disambiguate:
+    vram_used = find("used", "memory")
+
+    out: dict[str, object] = {"available": True, "binary": "rocm-smi"}
+    if gpu_model:
+        out["gpu_model"] = str(gpu_model)
+    if vram_total is not None:
+        out["vram_total_mb"] = _bytes_to_mb(vram_total)
+    if vram_used is not None:
+        out["vram_used_mb"] = _bytes_to_mb(vram_used)
+    return out
+
+
 def _query_amd_smi() -> dict[str, object]:
-    """Shell out to amd-smi or rocm-smi to get GPU info.
+    """Shell out to amd-smi or rocm-smi to get GPU model + VRAM.
 
     Config: AMD_SMI_PATH or ROCM_SMI_PATH env var to override the binary path.
-    Returns empty dict (with available=False) on any failure — graceful degrade.
+    Tries amd-smi first, then rocm-smi (their CLIs and JSON shapes differ).
+    Returns {"available": False} on any failure — graceful degrade.
     """
-    for env_var, candidate in [
-        ("AMD_SMI_PATH", "amd-smi"),
-        ("ROCM_SMI_PATH", "rocm-smi"),
-    ]:
-        binary = os.environ.get(env_var, candidate)
-        try:
-            # amd-smi showmeminfo vram --json — returns VRAM used/total + GPU model
-            result = subprocess.run(
-                [binary, "showmeminfo", "vram", "--json"],
-                capture_output=True, text=True, timeout=5,
-            )
-            if result.returncode == 0:
-                import json
-                data = json.loads(result.stdout)
-                # amd-smi JSON shape: list of GPU dicts
-                gpus = data if isinstance(data, list) else data.get("amd_smi_show_meminfo", [])
-                if gpus:
-                    gpu0 = gpus[0]
-                    return {
-                        "available": True,
-                        "binary": binary,
-                        "gpu_model": str(gpu0.get("gpu", "AMD GPU")),
-                        "vram_used_mb": gpu0.get("vram_total", {}).get("used", "N/A"),
-                        "vram_total_mb": gpu0.get("vram_total", {}).get("total", "N/A"),
-                    }
-        except (FileNotFoundError, subprocess.TimeoutExpired, Exception):  # noqa: BLE001
-            continue
+    # amd-smi: `amd-smi showmeminfo vram --json` (subcommand style, list-of-GPUs JSON)
+    amd_bin = os.environ.get("AMD_SMI_PATH", "amd-smi")
+    try:
+        result = subprocess.run(
+            [amd_bin, "showmeminfo", "vram", "--json"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            data = json.loads(result.stdout)
+            gpus = data if isinstance(data, list) else data.get("amd_smi_show_meminfo", [])
+            if gpus:
+                gpu0 = gpus[0]
+                return {
+                    "available": True,
+                    "binary": amd_bin,
+                    "gpu_model": str(gpu0.get("gpu", "AMD GPU")),
+                    "vram_used_mb": gpu0.get("vram_total", {}).get("used", "N/A"),
+                    "vram_total_mb": gpu0.get("vram_total", {}).get("total", "N/A"),
+                }
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError, Exception):  # noqa: BLE001
+        pass
+
+    # rocm-smi: `rocm-smi --showproductname --showmeminfo vram --json` (flag style, {"cardN":{...}})
+    rocm_bin = os.environ.get("ROCM_SMI_PATH", "rocm-smi")
+    try:
+        result = subprocess.run(
+            [rocm_bin, "--showproductname", "--showmeminfo", "vram", "--json"],
+            capture_output=True, text=True, timeout=5,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            parsed = _parse_rocm_smi(result.stdout)
+            if parsed:
+                return parsed
+    except (FileNotFoundError, subprocess.TimeoutExpired, json.JSONDecodeError, Exception):  # noqa: BLE001
+        pass
+
     return {"available": False}
 
 
@@ -194,7 +284,7 @@ def collect_amd_telemetry() -> dict[str, object]:
         "rocm_version": rocm_version,
         "vram_used_mb": amd_info.get("vram_used_mb", "N/A"),
         "vram_total_mb": amd_info.get("vram_total_mb", "N/A"),
-        "tok_per_sec": vllm_metrics.get("gen_tokens_total", "N/A"),
+        "tok_per_sec": _tok_per_sec(vllm_metrics.get("gen_tokens_total", "N/A")),
         "running_requests": vllm_metrics.get("running_requests", "N/A"),
         "extractor_model": ext_model or "unset",
         "estimator_model": est_model or "unset",
