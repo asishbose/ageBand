@@ -224,6 +224,19 @@ helm-release: _require-imagerepo docker-push-all ## Push agent+UI images to IMAG
 helm-uninstall: ## Uninstall the chart from the current context
 	helm uninstall $(HELM_RELEASE)
 
+# ── Demo notebook ─────────────────────────────────────────────────────────────
+.PHONY: notebook
+notebook: ## Open the AgeBand interactive demo notebook in JupyterLab
+	@which jupyter >/dev/null 2>&1 || { \
+		echo "$(YELLOW)jupyter not found — installing notebook deps…$(RESET)"; \
+		$(PIP) install -r requirements-notebook.txt -q; \
+	}
+	jupyter lab notebooks/AgeBand_Demo.ipynb
+
+.PHONY: install-notebook
+install-notebook: ## Install notebook-only dependencies (jupyter, pandas, requests)
+	$(PIP) install -r requirements-notebook.txt
+
 # ── Synthetic evaluation ───────────────────────────────────────────────────────
 # Env vars required for LLM-backed runs (see docs/modules/synthetic_eval.md):
 #   GENERATOR_API_BASE, GENERATOR_MODEL, GENERATOR_API_KEY

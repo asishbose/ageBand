@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 """Helpers for the AgeBand interactive demo notebook.
 
 Launches the AgeBand agent (and, optionally, a standalone static UI server) as
@@ -20,18 +21,37 @@ CLI entrypoint (used internally by ``start_ui``)::
 
     python -m scripts.notebook_server_utils serve-ui \
         --dist src/ui/dist --port 8081 --agent-port 8080 --host 0.0.0.0
+=======
+"""Server process management helpers for the AgeBand demo notebook.
+
+Starts / stops the agent (uvicorn) and UI (http.server) as background
+subprocesses and provides health-check polling so notebook cells can
+wait for services to become ready without a hard-coded sleep.
+
+Also provides ``resolve_ui_display_strategy()`` so environment-specific
+display logic is testable rather than inlined in notebook cells.
+
+This module is regular Python (not a notebook cell), so it goes through
+the normal mypy / ruff / test pipeline.
+>>>>>>> 1065eae (first round commit - notebook)
 """
 
 from __future__ import annotations
 
+<<<<<<< HEAD
 import os
 import socket
+=======
+import importlib.util
+import os
+>>>>>>> 1065eae (first round commit - notebook)
 import subprocess
 import sys
 import time
 import urllib.error
 import urllib.request
 from pathlib import Path
+<<<<<<< HEAD
 
 
 # ---------------------------------------------------------------------------
@@ -50,12 +70,52 @@ def wait_for_url(url: str, timeout: float = 30.0, interval: float = 0.5) -> bool
             if exc.code < 500:
                 return True
         except Exception:  # noqa: BLE001 — not up yet
+=======
+from typing import Literal
+
+# ---------------------------------------------------------------------------
+# Defaults
+# ---------------------------------------------------------------------------
+
+AGENT_PORT: int = 8080
+UI_PORT: int = 8081
+
+_DEFAULT_TIMEOUT: float = 30.0
+_POLL_INTERVAL: float = 0.5
+
+
+# ---------------------------------------------------------------------------
+# Health-check polling
+# ---------------------------------------------------------------------------
+
+
+def wait_for_url(
+    url: str,
+    timeout: float = _DEFAULT_TIMEOUT,
+    interval: float = _POLL_INTERVAL,
+) -> bool:
+    """Poll *url* until it returns HTTP 200 or *timeout* seconds elapse.
+
+    Uses only stdlib (``urllib``) so it works before any extras are installed.
+
+    Returns:
+        ``True`` if the service became ready within the timeout, else ``False``.
+    """
+    deadline = time.monotonic() + timeout
+    while time.monotonic() < deadline:
+        try:
+            with urllib.request.urlopen(url, timeout=2) as resp:
+                if resp.status == 200:
+                    return True
+        except Exception:  # noqa: BLE001  # broad by design — any failure → retry
+>>>>>>> 1065eae (first round commit - notebook)
             pass
         time.sleep(interval)
     return False
 
 
 # ---------------------------------------------------------------------------
+<<<<<<< HEAD
 # Process handle
 # ---------------------------------------------------------------------------
 
@@ -273,3 +333,172 @@ def _main(argv: list[str]) -> int:
 
 if __name__ == "__main__":
     raise SystemExit(_main(sys.argv[1:]))
+=======
+# ManagedProcess
+# ---------------------------------------------------------------------------
+
+
+class ManagedProcess:
+    """Wraps a ``subprocess.Popen`` with a human-readable name and lifecycle helpers."""
+
+    def __init__(self, proc: subprocess.Popen[bytes], name: str) -> None:
+        self._proc = proc
+        self.name = name
+
+    @property
+    def pid(self) -> int:
+        return self._proc.pid
+
+    def is_running(self) -> bool:
+        """Return ``True`` if the subprocess is still alive."""
+        return self._proc.poll() is None
+
+    def stop(self, timeout: float = 5.0) -> None:
+        """Terminate the process gracefully; kill if it doesn't exit in time."""
+        if not self.is_running():
+            return
+        self._proc.terminate()
+        try:
+            self._proc.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            self._proc.kill()
+            self._proc.wait()
+
+
+# ---------------------------------------------------------------------------
+# Agent server
+# ---------------------------------------------------------------------------
+
+
+def start_agent(
+    *,
+    port: int = AGENT_PORT,
+    inference_mode: str = "deterministic",
+    extra_env: dict[str, str] | None = None,
+    repo_root: Path | None = None,
+) -> ManagedProcess:
+    """Launch ``uvicorn src.orchestration.api:app`` as a background subprocess.
+
+    Args:
+        port: TCP port for the agent service (default ``8080``).
+        inference_mode: Value for ``AGEBAND_INFERENCE_MODE`` (default
+            ``"deterministic"`` — works with no GPU).
+        extra_env: Additional environment variable overrides (e.g. to set
+            ``LOCAL_API_BASE`` for LLM mode).
+        repo_root: Absolute path to the repo root; defaults to the parent of
+            the ``scripts/`` directory containing this file.
+
+    Returns:
+        A :class:`ManagedProcess` wrapping the running uvicorn subprocess.
+    """
+    if repo_root is None:
+        repo_root = Path(__file__).parent.parent.resolve()
+
+    env = os.environ.copy()
+    env["AGEBAND_INFERENCE_MODE"] = inference_mode
+    env["SKIP_AMD_CHECK"] = "true"
+    env["PYTHONPATH"] = str(repo_root)
+    if extra_env:
+        env.update(extra_env)
+
+    proc: subprocess.Popen[bytes] = subprocess.Popen(
+        [
+            sys.executable,
+            "-m",
+            "uvicorn",
+            "src.orchestration.api:app",
+            "--host",
+            "127.0.0.1",
+            "--port",
+            str(port),
+        ],
+        cwd=str(repo_root),
+        env=env,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.PIPE,
+    )
+    return ManagedProcess(proc, f"ageband-agent:{port}")
+
+
+# ---------------------------------------------------------------------------
+# UI static server
+# ---------------------------------------------------------------------------
+
+
+def start_ui(
+    ui_dist_dir: Path | str,
+    *,
+    port: int = UI_PORT,
+) -> ManagedProcess:
+    """Serve the pre-built UI ``dist/`` directory with Python's ``http.server``.
+
+    The notebook must have already run ``npm run build`` in ``src/ui/`` before
+    calling this.
+
+    Args:
+        ui_dist_dir: Path to the directory containing ``index.html`` (the built
+            Vite output, typically ``src/ui/dist/``).
+        port: TCP port to bind (default ``8081``).
+
+    Returns:
+        A :class:`ManagedProcess` wrapping the http.server subprocess.
+    """
+    dist = Path(ui_dist_dir).resolve()
+    proc: subprocess.Popen[bytes] = subprocess.Popen(
+        [sys.executable, "-m", "http.server", str(port), "--bind", "127.0.0.1"],
+        cwd=str(dist),
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+    return ManagedProcess(proc, f"ageband-ui:{port}")
+
+
+# ---------------------------------------------------------------------------
+# UI display strategy
+# ---------------------------------------------------------------------------
+
+
+def _is_colab() -> bool:
+    """Return ``True`` when running inside Google Colab."""
+    return importlib.util.find_spec("google.colab") is not None
+
+
+DisplayStrategy = Literal["colab", "public_host", "tunnel", "local"]
+
+
+def resolve_ui_display_strategy(
+    public_host: str = "",
+    use_tunnel: bool = False,
+) -> DisplayStrategy:
+    """Choose the best way to expose the UI to the notebook viewer.
+
+    Priority order (first match wins):
+
+    1. **colab** — ``google.colab`` is importable (Google Colab detected).
+       Use ``google.colab.output.serve_kernel_port_as_iframe()``.
+    2. **public_host** — ``public_host`` is a non-empty, non-whitespace string
+       (self-managed remote VM: DigitalOcean Droplet, EC2, GCP, etc.).
+       Use ``IPython.display.IFrame(src=f"http://{public_host}:{port}")``.
+    3. **tunnel** — ``use_tunnel=True`` was explicitly requested (Kaggle,
+       Binder, JupyterHub without a controlled public IP).
+       Use ``npx localtunnel --port {port}`` and ``IFrame`` the public URL.
+    4. **local** — plain local Jupyter / JupyterLab (default, requires nothing).
+       Use ``IPython.display.IFrame(src=f"http://localhost:{port}")``.
+
+    Args:
+        public_host: Public IP or hostname of the machine running this notebook,
+            when it is a remote VM with open firewall ports. Leave empty for local.
+        use_tunnel: Request the ``localtunnel`` fallback path for sandboxed hosted
+            environments (Kaggle, Binder, etc.) where no other strategy applies.
+
+    Returns:
+        One of ``"colab"``, ``"public_host"``, ``"tunnel"``, ``"local"``.
+    """
+    if _is_colab():
+        return "colab"
+    if public_host.strip():
+        return "public_host"
+    if use_tunnel:
+        return "tunnel"
+    return "local"
+>>>>>>> 1065eae (first round commit - notebook)
