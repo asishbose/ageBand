@@ -162,6 +162,36 @@ PYTHONPATH=. pytest tests/ --cov=src --cov-report=term-missing
 
 ---
 
+## Interactive demo notebook
+
+For a fully self-contained demo that a judge (or anyone) can open and run
+top-to-bottom, use the included Jupyter notebook:
+
+```bash
+# Install notebook deps (jupyterlab, pandas, requests) — once only:
+make install-notebook
+
+# Open the notebook in JupyterLab:
+make notebook
+```
+
+The notebook starts the agent and UI servers as background subprocesses,
+embeds the UI inline, and walks through all four key scenarios (clear adult,
+young teen, ambiguous, adversarial) plus the roster view — all in the browser,
+no separate terminals needed.
+
+**Works everywhere:**
+- **Local Jupyter/JupyterLab** — standard `IFrame(localhost)` path.
+- **Google Colab** — auto-detected; uses `google.colab.output.serve_kernel_port_as_iframe`.
+- **Remote VM (DigitalOcean Droplet, EC2, etc.)** — set `PUBLIC_HOST` in the configuration cell; the notebook prints exactly which ports to open in the firewall.
+- **Kaggle / Binder** — set `USE_TUNNEL = True`; uses `npx localtunnel`.
+
+**Standalone / portable:** the notebook is also a self-contained file — copy `AgeBand_Demo.ipynb` anywhere and run it; the first cell auto-clones the repo if needed.
+
+**Default config is deterministic mode** — runs with no GPU and no model endpoint. The configuration cell shows how to switch to LLM mode with `VLLM_HOST`/`LOCAL_MODEL`/`EXTRACTOR_MODEL`/`ESTIMATOR_MODEL`.
+
+---
+
 ## API reference
 
 The agent service exposes a FastAPI app at `http://localhost:8080`.
