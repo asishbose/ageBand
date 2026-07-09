@@ -70,6 +70,15 @@ function genId(): string {
 }
 
 export function App() {
+  // Apply dark theme when ?theme=dark is present in the URL.
+  // This is the ONLY consumer of data-theme="dark" — the default (:root) is never touched.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('theme') === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark')
+    }
+  }, [])
+
   const sessionId = useRef(genId())
   const [state, setState] = useState<SessionState>({ ...INITIAL_STATE, session_id: sessionId.current })
   const [loading, setLoading] = useState(false)
