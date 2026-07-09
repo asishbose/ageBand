@@ -178,3 +178,25 @@ async def roster(export: dict[str, Any] | None = Body(default=None)) -> dict[str
 async def _global_error_handler(request: Request, exc: Exception) -> JSONResponse:
     logger.error("Unhandled error: %s", exc, exc_info=True)
     return JSONResponse(status_code=500, content={"error": "internal_server_error"})
+
+
+# ---------------------------------------------------------------------------
+# Optional: serve the built UI from this same process (single-origin, single
+# port). Enabled by AGEBAND_SERVE_UI=1 when src/ui/dist exists — lets a single
+# `uvicorn` on one public port serve both the API and the UI, so the UI's
+# root-relative /v1 and /health calls resolve without CORS or a reverse proxy.
+# The Helm/nginx deploy path leaves this off (nginx serves the UI separately),
+# and this mount is added LAST so the explicit API routes above take precedence.
+# ---------------------------------------------------------------------------
+if os.environ.get("AGEBAND_SERVE_UI", "").lower() in ("1", "true", "yes"):
+    _UI_DIST = Path(__file__).resolve().parent.parent / "ui" / "dist"
+    if _UI_DIST.is_dir():
+        from fastapi.staticfiles import StaticFiles
+
+        app.mount("/", StaticFiles(directory=str(_UI_DIST), html=True), name="ui")
+        logger.info("Serving UI from %s at /", _UI_DIST)
+    else:
+        logger.warning(
+            "AGEBAND_SERVE_UI set but %s missing — run `npm run build` in src/ui",
+            _UI_DIST,
+        )
