@@ -131,11 +131,15 @@ async def complete_json(
     if not resolved_model:
         raise RuntimeError("LOCAL_MODEL is not set; cannot call the LLM endpoint.")
 
+    # response_format drives vLLM's guided-decoding (xgrammar) engine. Some ROCm/vLLM
+    # builds ship a broken xgrammar (nanobind refcount crash on JSON-grammar compile) that
+    # takes the whole server down. Set AGEBAND_NO_RESPONSE_FORMAT=1 to skip it entirely —
+    # the model still returns JSON via the prompt and _parse_json extracts it (with retry).
+    response_format: dict[str, object] | None
     if json_schema is not None:
-        response_format: dict[str, object] = {
-            "type": "json_schema",
-            "json_schema": json_schema,
-        }
+        response_format = {"type": "json_schema", "json_schema": json_schema}
+    elif os.environ.get("AGEBAND_NO_RESPONSE_FORMAT", "").strip() in ("1", "true", "yes"):
+        response_format = None
     else:
         response_format = {"type": "json_object"}
 
@@ -146,9 +150,10 @@ async def complete_json(
             {"role": "user", "content": user_prompt},
         ],
         "temperature": 0,
-        "response_format": response_format,
         "stream": False,
     }
+    if response_format is not None:
+        payload["response_format"] = response_format
     headers = {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
     url = f"{base}/chat/completions"
 
