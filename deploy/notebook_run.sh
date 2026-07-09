@@ -63,7 +63,8 @@ export ESTIMATOR_MODEL="${ESTIMATOR_MODEL:-$SERVE_MODEL}"
 export AGEBAND_INFERENCE_MODE="llm"
 export SKIP_AMD_CHECK="false"
 export VLLM_METRICS_URL="http://localhost:${VLLM_PORT}/metrics"
-export GUIDED_DECODING_ENABLED="1"
+export GUIDED_DECODING_ENABLED=""          # OFF — some ROCm vLLM builds crash on guided decoding
+export AGEBAND_NO_RESPONSE_FORMAT="1"      # skip response_format (broken xgrammar); model returns JSON
 
 # ── ⑥ Run the HTTP agent (background) ─────────────────────────────────────────
 nohup python3 -m uvicorn src.orchestration.api:app --host 0.0.0.0 --port "$AGENT_PORT" > agent.log 2>&1 &
