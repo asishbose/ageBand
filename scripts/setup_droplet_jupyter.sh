@@ -15,8 +15,13 @@
 # choice stays configurable per-run rather than baked into a one-time setup.
 set -euo pipefail
 
+# Resolve the repo root from this script's location (scripts/ -> repo root),
+# so we can install the app's own runtime requirements into the venv.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
 VENV_DIR="${HOME}/.ageband-jupyter-venv"
-JUPYTER_PORT="8888"
+JUPYTER_PORT="8889"
 SERVICE_NAME="jupyterlab"
 TOKEN_FILE="${HOME}/.ageband-jupyter-token"
 SERVICE_FILE="${HOME}/.config/systemd/user/${SERVICE_NAME}.service"
@@ -51,6 +56,21 @@ else
     echo "✓ JupyterLab installed in ${VENV_DIR}"
 fi
 
+# ── 3b. Install the app's runtime + notebook requirements into the venv ────────
+# The notebook launches the AgeBand server with the kernel's Python (this venv),
+# so fastapi/uvicorn/openai/etc. must live here — otherwise the server subprocess
+# dies with "No module named uvicorn". Run unconditionally (pip is idempotent) so
+# a venv created before these deps existed also gets healed on re-run.
+for req in requirements.txt requirements-notebook.txt; do
+    if [ -f "${REPO_ROOT}/${req}" ]; then
+        echo "Installing ${req} into venv …"
+        "${VENV_DIR}/bin/pip" install --quiet -r "${REPO_ROOT}/${req}"
+        echo "✓ ${req} installed"
+    else
+        echo "WARNING: ${REPO_ROOT}/${req} not found — skipping (server may fail to start)"
+    fi
+done
+
 # ── 4. Generate (or load) random access token ─────────────────────────────────
 if [ ! -f "${TOKEN_FILE}" ]; then
     python3 -c "import secrets; print(secrets.token_hex(32))" > "${TOKEN_FILE}"
@@ -73,6 +93,7 @@ Type=simple
 WorkingDirectory=%h
 ExecStart=${VENV_DIR}/bin/jupyter lab \\
     --no-browser \\
+    --allow-root \\
     --ip=0.0.0.0 \\
     --port=${JUPYTER_PORT} \\
     --ServerApp.token=${TOKEN} \\
