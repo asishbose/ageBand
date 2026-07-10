@@ -1,0 +1,62 @@
+{
+  "harvested_at": "2026-07-10",
+  "harvest_note": "Seeded manually from the deck rebuild session (Claude). Re-run prompts/hackathon/18_deck_data_harvest_prompt.md to refresh from live repo state.",
+  "mi300x": {
+    "run_date": "2026-07-09",
+    "tok_s": 598.6,
+    "p95_ms_c10": 3074,
+    "p95_ms_single": 2061,
+    "cost_per_1k": "$0.139",
+    "gpu_hourly": "$1.99/hr",
+    "sessions_per_gpu": ">=10 (lower bound - p95 5s ceiling never reached through c=10; headroom remains)",
+    "stack": "Gemma 3 · vLLM 0.23 · ROCm 7.2.4 · 192 GB HBM3 (MI300X, AMD Dev Cloud)",
+    "benchmark_model": "google/gemma-3-27b-it (single-model: same model for extractor + estimator)",
+    "dual_model_measured": false,
+    "dual_model_note": "4B extractor + 27B estimator wired (EXTRACTOR_MODEL/ESTIMATOR_MODEL) and fits in 192 GB; word as 'wired', upside not dependency",
+    "source": "docs/benchmarks_mi300x.md — 'Headline numbers — Slide 9'"
+  },
+  "eval": {
+    "accuracy_pct": 100.0,
+    "fixtures": 15,
+    "settled_rate_pct": 100.0,
+    "confusion": "clean diagonal (5 child, 5 teen, 5 adult; 0 unknown); per-band P/R/F1 = 1.000",
+    "source": "docs/benchmarks_mi300x.md — 'Accuracy on the same MI300X run — 2026-07-09'"
+  },
+  "adversarial": {
+    "trace": "0.12 → 0.32 → teen · caution · evasion_flag",
+    "trace_note": "turns 1-2 'adult' at low confidence (not fooled); turn 3 flips on the homework/curfew tell; verified on the MI300X run",
+    "big_model_alone": "adult · confidence 0.86 · posture wide open",
+    "big_model_alone_note": "gemma4:31b fooled on the adversarial transcript despite an explicit don't-trust-self-claims prompt; deterministic evasion guard held",
+    "patterns": ["mismatch", "deflection", "register_switching", "over_insistence"],
+    "source": "docs/model_comparison.md (Results table + 'What the comparison shows'); docs/benchmarks_mi300x.md (cross-turn demo); src/ageband_inference/rule_estimator.py (_MASKING_PATTERNS_ALL)"
+  },
+  "quality": {
+    "tests": 463,
+    "coverage_pct": 86.5,
+    "mypy": "mypy --strict: 0 errors",
+    "ruff": "ruff clean",
+    "method": "docs/hackathon_build_log.md Phase 11 full verification loop (463 passed, 86.52%); README quality gates table shows 86.63% — re-run pytest for the exact current figure",
+    "source": "docs/hackathon_build_log.md — Phase 11; README.md — Quality gates"
+  },
+  "multilingual": {
+    "languages": ["es", "fr", "hi", "ar", "zh"],
+    "note": "langdetect + Unicode-block + ASCII-ratio fallback chain; non-English turns abstain — no false cues injected from the English lexicon",
+    "source": "README.md — Multilingual support; docs/hackathon_build_log.md — Phase 06"
+  },
+  "positioning": {
+    "competitive": "Complementary to Yoti / k-ID: AgeBand is the always-on, zero-friction smoke detector that decides when to invoke the certified check — step-up can route straight to their flows.",
+    "source": "docs/model_comparison.md — Competitive landscape"
+  },
+  "demo": {
+    "scenarios": [
+      {"id": "A", "label": "Clear adult", "sample": "Whisky picks, board decks, Q2 targets.", "outcome": "likely-adult · high → full features stay open."},
+      {"id": "B", "label": "Young teen", "sample": "\"Teacher\", \"homework\", \"Mom says 9pm.\"", "outcome": "Confidence climbs turn by turn → tighten → step-up: confirm age."},
+      {"id": "C", "label": "Ambiguous adult", "sample": "An adult who writes simply.", "outcome": "Confidence stays LOW → tightens slightly and ASKS. Never locks out."},
+      {"id": "D", "label": "★ Adversarial", "sample": "Child claiming \"I'm 28, trust me.\"", "outcome": "Over-insistence is itself a cue → never settles adult → step-up."}
+    ],
+    "roster": "Replay a whole channel export; risk-ranked per-user table + live AMD telemetry badge.",
+    "notebook": "notebooks/AgeBand_Demo.ipynb — Run All starts vLLM, the agent, and the UI (local / Colab / droplet)",
+    "containerized": "Same code ships containerized: Docker images + Helm chart, one command (make helm-release).",
+    "source": "README.md — Interactive demo notebook, Docker, Helm; tests/e2e/"
+  }
+}
