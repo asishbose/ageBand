@@ -8,6 +8,16 @@ AgeBand reads how a user writes and what they talk about, maintains a live estim
 
 ---
 
+## 🎬 Demo
+
+**[▶ Watch the demo video](docs/ageband_amd_demo.mp4)** — the four scenarios (clear adult · young teen · ambiguous · adversarial) plus the roster view, running Gemma 3 27B on an AMD Instinct MI300X. GitHub plays the MP4 directly in its file viewer.
+
+https://github.com/asishbose/ageBand/raw/main/docs/ageband_amd_demo.mp4
+
+**[📊 Pitch deck](docs/AgeBand_AMD_Demo.pptx)** — 9 slides with timed speaker notes: the reframe, the planner-loop architecture, measured MI300X numbers (598.6 tok/s · $0.139/1k turns · 100% eval), and the adversarial proof.
+
+---
+
 ## Key invariants
 
 | Invariant | Enforcement |
