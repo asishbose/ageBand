@@ -14,7 +14,9 @@ AgeBand reads how a user writes and what they talk about, maintains a live estim
 
 https://github.com/asishbose/ageBand/raw/main/docs/ageband_amd_demo.mp4
 
-**[📊 Pitch deck](docs/AgeBand_AMD_Demo.pptx)** — 9 slides with timed speaker notes: the reframe, the planner-loop architecture, measured MI300X numbers (598.6 tok/s · $0.139/1k turns · 100% eval), and the adversarial proof.
+**[📊 Pitch deck](docs/AgeBand_AMD_Pitch.pptx)** 
+
+**[📊 Demo deck](docs/AgeBand_AMD_Demo.pptx)** 
 
 ---
 
